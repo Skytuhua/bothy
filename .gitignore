@@ -1,0 +1,13 @@
+target/
+.DS_Store
+__pycache__/
+*.egg-info/
+dist/
+node_modules/
+.dart_tool/
+pubspec.lock
+
+# Private planning documents (not published yet)
+PROJECT_BRIEF*.md
+PROJECT_SPEC.md
+docs/
