@@ -1,0 +1,35 @@
+{
+  "name": "@bothy-sync/core",
+  "version": "0.0.1",
+  "description": "Format constants, types and HLC helpers for Bothy, a serverless local-first sync engine over your own Google Drive. Early development.",
+  "keywords": ["sync", "local-first", "offline", "google-drive", "hlc"],
+  "homepage": "https://github.com/bothy-sync/bothy#readme",
+  "bugs": "https://github.com/bothy-sync/bothy/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bothy-sync/bothy.git",
+    "directory": "bindings/js"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "author": "The Bothy Contributors",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "files": ["index.js", "index.d.ts", "LICENSE-MIT", "LICENSE-APACHE"],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

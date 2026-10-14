@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bothy"
+version = "0.0.1"
+description = "Serverless, local-first sync engine that uses your own Google Drive as the transport. Early development."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+authors = [{ name = "The Bothy Contributors" }]
+keywords = ["sync", "local-first", "offline", "google-drive", "embedded"]
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Database",
+  "Topic :: System :: Networking",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/bothy-sync/bothy"
+Repository = "https://github.com/bothy-sync/bothy"
+Issues = "https://github.com/bothy-sync/bothy/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bothy"]
