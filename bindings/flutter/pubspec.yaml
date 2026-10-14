@@ -1,0 +1,20 @@
+name: bothy
+description: >-
+  Serverless, local-first sync engine that uses the user's own Google Drive as the transport.
+  Early development: format constants and HLC helpers only.
+version: 0.0.1
+homepage: https://github.com/bothy-sync/bothy
+repository: https://github.com/bothy-sync/bothy/tree/main/bindings/flutter
+issue_tracker: https://github.com/bothy-sync/bothy/issues
+topics:
+  - sync
+  - offline-first
+  - google-drive
+  - database
+
+environment:
+  sdk: ^3.5.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
