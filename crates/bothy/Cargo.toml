@@ -1,0 +1,19 @@
+[package]
+name = "bothy"
+description = "Serverless, local-first sync engine that uses the user's own cloud storage (Google Drive) as the transport. Early development."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation = "https://docs.rs/bothy"
+readme = "README.md"
+keywords = ["sync", "local-first", "offline", "google-drive", "hlc"]
+categories = ["database", "network-programming"]
+
+[dependencies]
+
+[lints]
+workspace = true
