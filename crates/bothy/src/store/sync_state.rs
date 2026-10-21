@@ -218,6 +218,14 @@ impl Store {
         )?)
     }
 
+    /// Number of local ops ever written to the outbox (packed or not).
+    pub fn outbox_count(&self) -> Result<u64> {
+        let n: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM outbox", [], |r| r.get(0))?;
+        Ok(n as u64)
+    }
+
     /// Saved change-feed cursor.
     pub fn change_cursor(&self) -> Result<Option<String>> {
         get_meta(&self.conn, "change_cursor")?

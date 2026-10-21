@@ -1,5 +1,7 @@
 //! Remote storage backends. Every file is immutable once written; there is no overwrite.
 
+#[cfg(feature = "test-util")]
+pub mod faulty;
 mod folder;
 
 use async_trait::async_trait;
