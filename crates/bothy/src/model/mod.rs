@@ -1,6 +1,7 @@
 //! Data model: values, identifiers, operations.
 
 mod ids;
+mod json;
 mod op;
 mod value;
 
