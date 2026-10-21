@@ -33,6 +33,9 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - run: cargo clippy -p bothy --no-default-features --all-targets --locked -- -D warnings
+      - run: cargo clippy -p bothy --all-features --all-targets --locked -- -D warnings
+      - name: Simulation (500 seeds)
+        run: cargo test -p bothy --features test-util --test simulation --locked
 
   rust-msrv:
     name: Rust MSRV (1.88)
