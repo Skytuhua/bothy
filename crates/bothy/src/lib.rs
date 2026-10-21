@@ -26,6 +26,7 @@ mod error;
 mod hlc;
 pub mod merge;
 pub mod model;
+pub mod store;
 
 pub use error::{Error, ErrorKind, Result};
 pub use hlc::{Clock, DEFAULT_MAX_DRIFT_MS, Hlc, HlcClock, ParseHlcError, SystemClock};
