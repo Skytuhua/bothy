@@ -17,6 +17,8 @@ categories = ["database", "network-programming"]
 default = ["blocking"]
 # Synchronous API with its own runtime, for the CLI and bindings.
 blocking = ["tokio/rt-multi-thread"]
+# Fault-injecting remote for tests and simulations.
+test-util = []
 
 [dependencies]
 async-trait = "0.1"
