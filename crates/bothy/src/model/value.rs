@@ -75,6 +75,12 @@ impl From<bool> for Value {
     }
 }
 
+impl From<i32> for Value {
+    fn from(v: i32) -> Self {
+        Value::Int(v.into())
+    }
+}
+
 impl From<i64> for Value {
     fn from(v: i64) -> Self {
         Value::Int(v)
