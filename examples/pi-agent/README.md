@@ -73,6 +73,15 @@ ros2 topic echo /bothy/missions
 ros2 topic pub --once /bothy/telemetry std_msgs/String "{data: '{\"battery\": 0.8}'}"
 ```
 
+## Measure a board
+
+```sh
+python3 measure.py     # unlock time (Argon2id), peak memory while syncing 48 h of telemetry
+```
+
+Each phase runs in its own process. Everything happens in a temporary directory that is
+removed afterwards.
+
 ## Test
 
 ```sh
