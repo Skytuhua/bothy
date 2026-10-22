@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bothy", "crates/bothy-cli", "crates/bothy-conformance"]
+members = ["crates/bothy", "crates/bothy-cli", "crates/bothy-conformance", "crates/bothy-oauth"]
 exclude = ["fuzz", "bindings/flutter/rust"]
 
 [workspace.package]
@@ -14,6 +14,7 @@ homepage = "https://github.com/bothy-sync/bothy"
 
 [workspace.dependencies]
 bothy = { path = "crates/bothy", version = "0.2.0" }
+bothy-oauth = { path = "crates/bothy-oauth", version = "0.2.0" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
