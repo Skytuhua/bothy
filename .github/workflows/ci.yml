@@ -125,6 +125,9 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = Windows ]; then py=.venv/Scripts/python; exe=.exe; else py=.venv/bin/python; exe=; fi
           BOTHY_CLI="$GITHUB_WORKSPACE/target/release/bothy$exe" $py -m unittest discover -s tests -v
+      - name: Robot agent example
+        if: runner.os != 'Windows'
+        run: .venv/bin/python -m unittest discover -s ../../examples/pi-agent/tests -v
 
   python-wheels:
     name: Python wheels (${{ matrix.target }})
