@@ -1,18 +1,8 @@
-"""Bothy: serverless, local-first sync over your own Google Drive.
-
-Early development. This release only contains the on-remote format version and helpers for
-the hybrid logical clock (HLC) timestamps that order every change. The sync engine will ship
-as native bindings to the Rust core: https://github.com/bothy-sync/bothy
-"""
+"""Hybrid logical clock timestamps, as used in Bothy file names and change stamps."""
 
 from typing import NamedTuple
 
-__all__ = ["FORMAT_VERSION", "Hlc", "__version__"]
-
-__version__ = "0.0.1"
-
-#: Version of the on-remote file format (``bothy_format`` in ``manifest.json``). Draft.
-FORMAT_VERSION = 1
+__all__ = ["Hlc"]
 
 _LOGICAL_BITS = 16
 _MAX_PHYSICAL_MS = (1 << (64 - _LOGICAL_BITS)) - 1

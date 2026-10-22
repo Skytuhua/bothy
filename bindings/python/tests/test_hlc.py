@@ -33,7 +33,7 @@ class HlcTest(unittest.TestCase):
             Hlc(T, 1 << 16).to_u64()
 
     def test_metadata(self):
-        self.assertEqual(bothy.__version__, "0.0.1")
+        self.assertRegex(bothy.__version__, r"^\d+\.\d+\.\d+")
         self.assertEqual(bothy.FORMAT_VERSION, 1)
 
 

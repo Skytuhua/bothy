@@ -1,11 +1,11 @@
 [build-system]
-requires = ["hatchling>=1.25"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
 
 [project]
 name = "bothy"
-version = "0.0.1"
-description = "Serverless, local-first sync engine that uses your own Google Drive as the transport. Early development."
+version = "0.2.0"
+description = "Serverless, local-first sync engine that uses your own Google Drive as the transport."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT OR Apache-2.0"
@@ -13,10 +13,11 @@ license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
 authors = [{ name = "The Bothy Contributors" }]
 keywords = ["sync", "local-first", "offline", "google-drive", "embedded"]
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Rust",
   "Topic :: Database",
   "Topic :: System :: Networking",
   "Typing :: Typed",
@@ -27,5 +28,7 @@ Homepage = "https://github.com/bothy-sync/bothy"
 Repository = "https://github.com/bothy-sync/bothy"
 Issues = "https://github.com/bothy-sync/bothy/issues"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/bothy"]
+[tool.maturin]
+python-source = "python"
+module-name = "bothy._native"
+features = []
