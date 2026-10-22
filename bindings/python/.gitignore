@@ -1,0 +1,4 @@
+# maturin develop output
+python/bothy/*.so
+python/bothy/*.pyd
+.venv/
