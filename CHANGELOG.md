@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+### Added
+
+- `bothy-oauth`: the Google OAuth helpers (loopback sign-in with PKCE, device flow, token
+  refresh, revoke, a keyring/file token store and a refreshing `AccessTokenProvider`), moved
+  out of the CLI so other front ends can use them. The CLI uses it; its behaviour is unchanged.
+
 ## [0.2.0]
 
 Encryption, the conflict log and the Flutter binding. On-remote format still

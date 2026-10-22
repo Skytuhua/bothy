@@ -414,18 +414,14 @@ dependencies = [
 name = "bothy-cli"
 version = "0.2.0"
 dependencies = [
- "async-trait",
  "base64 0.23.1",
  "bothy",
+ "bothy-oauth",
  "clap",
- "getrandom 0.4.3",
  "keyring",
  "open",
- "reqwest",
  "rpassword",
- "rustls",
  "serde_json",
- "sha2",
  "tempfile",
  "tokio",
  "zeroize",
@@ -439,6 +435,24 @@ dependencies = [
  "blake3",
  "bothy",
  "serde_json",
+]
+
+[[package]]
+name = "bothy-oauth"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "base64 0.23.1",
+ "bothy",
+ "getrandom 0.4.3",
+ "keyring",
+ "reqwest",
+ "rustls",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "webpki-roots",
 ]
 
 [[package]]
