@@ -49,6 +49,20 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.textContaining('Synced at'), findsOneWidget);
 
+    // The robot screen: send a mission.
+    await tester.tap(find.byTooltip('Robot'));
+    await tester.pumpAndSettle();
+    expect(find.text('No missions yet. Send one with +.'), findsOneWidget);
+    await tester.tap(find.byTooltip('New mission'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'dock');
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    expect(find.text('dock'), findsOneWidget);
+    expect(find.text('new'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
     // Nothing readable on the remote.
     for (final f in remote.listSync(recursive: true).whereType<File>()) {
       expect(

@@ -19,6 +19,19 @@ bothy join --app-id dev.bothy.notes --remember   # asks for the same password
 bothy list notes
 ```
 
+## Robot screen
+
+The **Robot** screen (the robot icon on the note list) sends missions to the robot agent in
+[`examples/pi-agent`](../pi-agent) and shows the telemetry it sends back. The agent signs in
+with the device flow, which can only get `drive.file`. Run the app in folder mode so both
+sides use the same visible `Bothy/robot` folder:
+
+```sh
+flutter run --dart-define-from-file=oauth.json --dart-define=BOTHY_DRIVE_FOLDER=robot
+```
+
+In folder mode the app asks for the `drive.file` scope and keeps a separate local database.
+
 ## Try it without Google
 
 This syncs through a local folder instead of Drive. A relative path is resolved inside the
