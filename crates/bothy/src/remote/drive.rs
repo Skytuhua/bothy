@@ -59,7 +59,12 @@ struct Cache {
     parent: Option<String>,
     ids: HashMap<String, String>,
     keys: HashMap<String, String>,
+    /// File ids from `files.generateIds` not handed out yet.
+    spare_ids: Vec<String>,
 }
+
+/// File ids fetched per `files.generateIds` call, so most uploads need only one request.
+const ID_BATCH: &str = "20";
 
 impl Cache {
     fn remember(&mut self, key: &str, id: &str) {
@@ -462,21 +467,35 @@ impl DriveRemote {
     }
 
     async fn generate_id(&self) -> Result<String> {
+        if let Some(id) = self.cache().spare_ids.pop() {
+            return Ok(id);
+        }
         let r = self
             .send(
                 Method::GET,
                 "/drive/v3/files/generateIds",
-                &[("count", "1"), ("space", self.space()), ("type", "files")],
+                &[
+                    ("count", ID_BATCH),
+                    ("space", self.space()),
+                    ("type", "files"),
+                ],
                 None,
             )
             .await?;
         if !r.status.is_success() {
             return Err(bad_response("files.generateIds"));
         }
-        parse_json(&r.body, "files.generateIds")?["ids"][0]
-            .as_str()
-            .map(str::to_owned)
-            .ok_or_else(|| bad_response("files.generateIds"))
+        let mut ids: Vec<String> = parse_json(&r.body, "files.generateIds")?["ids"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let first = ids.pop().ok_or_else(|| bad_response("files.generateIds"))?;
+        self.cache().spare_ids.extend(ids);
+        Ok(first)
     }
 
     /// Whether the existing file `id` has exactly `data`, by SHA-256.
