@@ -14,6 +14,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   refresh, revoke, a keyring/file token store and a refreshing `AccessTokenProvider`), moved
   out of the CLI so other front ends can use them. The CLI uses it; its behaviour is unchanged.
 
+### Changed
+
+- The default Argon2id cost for new key files is 64 MiB, 2 passes, 1 lane (was 3 passes),
+  `bothy::crypto::DEFAULT_KDF_COST`. Three passes took 1.09 s per unlock on a Cortex-A53
+  board. Existing key files keep the parameters stored in them.
+
+### Fixed
+
+- The blocking API's runtime had no IO driver, so Drive requests from it (the Python
+  binding) panicked.
+
 ## [0.2.0]
 
 Encryption, the conflict log and the Flutter binding. On-remote format still
