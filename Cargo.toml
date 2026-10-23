@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/bothy", "crates/bothy-cli", "crates/bothy-conformance", "crates/bothy-oauth"]
+members = ["crates/bothy", "crates/bothy-cli", "crates/bothy-conformance", "crates/bothy-oauth", "crates/bothy-ffi"]
 exclude = ["fuzz", "bindings/flutter/rust"]
 
 [workspace.package]
