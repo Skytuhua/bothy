@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Rust crates (`bothy`, `bothy-cli`) are listed here. The on-remote
+All notable changes to the Rust crates (`bothy`, `bothy-cli`, `bothy-oauth`) are listed here. The on-remote
 format has its own version (`bothy_format`), independent of crate versions.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow
@@ -8,11 +8,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [0.3.0]
+
+Python and embedded Linux. On-remote format unchanged (`bothy_format = 1`). The Python
+package (`bothy` on PyPI) and the Flutter package have their own changelogs.
+
 ### Added
 
 - `bothy-oauth`: the Google OAuth helpers (loopback sign-in with PKCE, device flow, token
   refresh, revoke, a keyring/file token store and a refreshing `AccessTokenProvider`), moved
   out of the CLI so other front ends can use them. The CLI uses it; its behaviour is unchanged.
+- `crates/bothy-ffi` (not published): the start of a C ABI with a cbindgen header, for
+  embedding the engine in C and C++ programs.
 
 ### Changed
 
@@ -24,6 +31,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 - The blocking API's runtime had no IO driver, so Drive requests from it (the Python
   binding) panicked.
+
+### Security
+
+- `ctutils` 0.4.5 in the lockfile (RUSTSEC-2026-0385), which `cargo install --locked
+  bothy-cli` uses.
 
 ## [0.2.0]
 
@@ -109,7 +121,8 @@ On-remote format `bothy_format = 1`.
 
 Name reservation: the hybrid logical clock type and the format version constant.
 
-[Unreleased]: https://github.com/bothy-sync/bothy/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bothy-sync/bothy/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bothy-sync/bothy/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bothy-sync/bothy/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/bothy-sync/bothy/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/bothy-sync/bothy/releases/tag/v0.0.1

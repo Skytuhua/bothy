@@ -72,7 +72,12 @@ db = bothy.Database.open(..., key=key)
 - **Locked database:** opened without a secret, an encrypted database is locked. Local reads
   and writes work; `sync()` raises `bothy.KeyRequiredError` until `unlock()`.
 - **Embedded boards:** keep the key instead of the password. Unlocking with a password costs
-  64 MiB of memory once; syncing with the key does not.
+  64 MiB of memory once; syncing with the key does not. On a 4-core Cortex-A53 board, syncing
+  two days of per-minute telemetry with the key peaked at 28 MiB of resident memory.
+
+A complete example, a robot agent that takes missions from the Flutter demo and reports
+telemetry (with an optional ROS 2 bridge), is in
+[`examples/pi-agent`](https://github.com/bothy-sync/bothy/tree/main/examples/pi-agent).
 
 ## Errors
 

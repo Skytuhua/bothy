@@ -1,3 +1,12 @@
+## 0.3.0
+
+Built on `bothy` 0.3.0.
+
+- New key files use the lighter default Argon2id cost (64 MiB, 2 passes); existing key files
+  keep their own parameters.
+- `BothyRemoteSpec.googleDriveFolder` is the remote to share a database with a headless
+  device; the demo app's Robot screen shows it against the Python robot agent.
+
 ## 0.2.0
 
 First release with the sync engine. Requires a Rust toolchain to build (see the README).
