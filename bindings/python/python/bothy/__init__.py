@@ -153,6 +153,23 @@ class Collection:
         return self._db._native.delete(self.name, id)
 
 
+class _Changes:
+    """Iterator over a change subscription (see ``Database.changes``)."""
+
+    def __init__(self, stream: "_native.Changes", timeout: Optional[float]) -> None:
+        self._stream = stream
+        self._timeout = timeout
+
+    def __iter__(self) -> "_Changes":
+        return self
+
+    def __next__(self) -> Change:
+        c = self._stream.next(self._timeout)
+        if c is None:
+            raise StopIteration
+        return Change(c)
+
+
 class Database:
     """A local database that syncs through a remote. Open it with :meth:`open`."""
 
@@ -231,13 +248,10 @@ class Database:
         return self._native.sync()
 
     def changes(self, timeout: Optional[float] = None) -> Iterator[Change]:
-        """Yields changes as they happen. Stops after ``timeout`` seconds without one."""
-        stream = self._native.changes()
-        while True:
-            c = stream.next(timeout)
-            if c is None:
-                return
-            yield Change(c)
+        """Changes made from this call on, as they happen. Stops after ``timeout`` seconds
+        without one. The subscription starts here, not at the first ``next()``, so a
+        ``sync()`` between the two is not missed."""
+        return _Changes(self._native.changes(), timeout)
 
     def start_auto_sync(self, debounce: float = 2.0, poll_interval: float = 300.0) -> None:
         """Syncs in the background: ``debounce`` seconds after local writes, and every

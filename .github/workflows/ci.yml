@@ -83,6 +83,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo publish --workspace --dry-run --locked
 
+  c-abi:
+    name: C ABI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: crates/bothy-ffi/tests/run_smoke.sh
+      - name: bothy.h is up to date
+        if: runner.os == 'Linux'
+        run: |
+          cargo install --locked cbindgen
+          cd crates/bothy-ffi && cbindgen --config cbindgen.toml --verify --output include/bothy.h
+
   python:
     name: Python (${{ matrix.os }}, ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
