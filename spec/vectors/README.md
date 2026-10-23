@@ -49,6 +49,7 @@ Binary data (`cbor`, `bytes`, `dump`) is lowercase hex. Expected errors are `"co
 | `crypto.json` | Argon2id (v0x13, 32-byte output): each `kdf` case gives `kek`. `key_check` verifies under `dek` with `aad` = db id bytes. The key file unwraps to `dek` with its password (`aad` = `"bothy-dek-v1"` ‖ db id ‖ key file key) and gives a wrong-password error for `wrong_password`. `sealed_json` opens to `plaintext` with `aad` = its key |
 | `encrypted/segment.json` | XChaCha20-Poly1305 segments (`aad` = 96-byte header): decoding with `key` gives `ops`; uncompressed ones re-encode exactly with the given `nonce`. `invalid` cases fail with `error` |
 | `encrypted/snapshot.json` | An encrypted snapshot (`aad` = header ‖ u32 BE chunk index) with fixed chunk `nonces`: reading gives `entries`, writing gives `bytes` |
+| `signaling.json` | Signaling files of the P2P channel. Each `valid` key parses to `device_id`, `kind` (`online`, `offer`, `answer`), `peer` and `hlc` and formats back; its `json` parses, and the reference writer re-encodes it byte for byte (compact, keys in byte order); `sealed` opens to `json` under `dek` with `aad` = the key. `invalid_keys` do not parse (readers ignore them). `invalid_documents` fail with `error` |
 
 zstd output differs between libraries and versions. For compressed files, only decoding is
 normative. Sealed values are `nonce ‖ ciphertext ‖ tag`.

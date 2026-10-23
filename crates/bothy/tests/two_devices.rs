@@ -329,3 +329,40 @@ fn blocking_facade_works_outside_and_refuses_inside_a_runtime() {
     let err = rt.block_on(async { notes.get("n1") }).unwrap_err();
     assert_eq!(err.kind(), ErrorKind::InvalidInput);
 }
+
+/// Signaling files (valid, malformed or from a newer version) live next to the data and never
+/// disturb a sync; 0.3 readers already skip the whole `signaling/` prefix.
+#[tokio::test]
+async fn signaling_files_are_ignored_by_sync() {
+    let s = Setup::new();
+    let (a, b) = s.pair().await;
+    let db = a.db_id().await.unwrap().unwrap();
+    let me = a.device_id();
+    let other = b.device_id();
+    for (name, body) in [
+        (
+            "online-018bcfe568000001.json".to_owned(),
+            format!(r#"{{"v":1,"device_id":"{me}","session":"0000000000000001"}}"#),
+        ),
+        (
+            format!("offer-{other}-018bcfe568000002.json"),
+            r#"{"v":9}"#.to_owned(),
+        ),
+        (
+            format!("answer-{other}-018bcfe568000003.json"),
+            "not json".to_owned(),
+        ),
+        ("hello.json".to_owned(), "{}".to_owned()),
+    ] {
+        let key = format!("{db}/signaling/{me}/{name}");
+        s.remote.put_new(&key, body.as_bytes(), None).await.unwrap();
+    }
+    a.collection("notes")
+        .unwrap()
+        .put("n1", json!({"title": "next to signaling"}))
+        .await
+        .unwrap();
+    converge(&[&a, &b]).await;
+    let got = b.collection("notes").unwrap().get("n1").await.unwrap();
+    assert!(got.is_some());
+}

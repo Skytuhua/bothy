@@ -5,6 +5,7 @@ pub mod keys;
 pub mod manifest;
 mod op;
 pub mod segment;
+pub mod signal;
 pub mod snapshot;
 pub mod state;
 

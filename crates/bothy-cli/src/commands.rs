@@ -904,7 +904,8 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
                     Some(KeyKind::Segment(..)) => "segment",
                     Some(KeyKind::Snapshot(..)) => "snapshot",
                     Some(KeyKind::KeyFile(..)) => "key",
-                    None => "unknown",
+                    Some(KeyKind::Signal(..)) => "signal",
+                    Some(_) | None => "unknown",
                 };
                 let k = kinds.entry(kind).or_default();
                 k.0 += 1;

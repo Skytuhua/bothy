@@ -1,0 +1,86 @@
+{
+  "about": "Signaling files for the P2P channel. A key parses to device, kind, peer and HLC; a document parses (after opening, if sealed with the data key and aad = its key) and re-encodes to the same JSON.",
+  "dek": "4242424242424242424242424242424242424242424242424242424242424242",
+  "invalid_documents": [
+    {
+      "error": "corrupt",
+      "json": "{\"device_id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"sdp\":\"v=0\\r\\n\",\"session\":\"0102030405060708\",\"to\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"to_session\":\"1112131415161718\",\"v\":1}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001.json"
+    },
+    {
+      "error": "corrupt",
+      "json": "{\"device_id\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"sdp\":\"v=0\\r\\n\",\"session\":\"0102030405060708\",\"to\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"to_session\":\"1112131415161718\",\"v\":1}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001.json"
+    },
+    {
+      "error": "corrupt",
+      "json": "{\"device_id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"sdp\":\"\",\"session\":\"0102030405060708\",\"to\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"to_session\":\"1112131415161718\",\"v\":1}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001.json"
+    },
+    {
+      "error": "corrupt",
+      "json": "{\"device_id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"sdp\":\"v=0\\r\\n\",\"session\":\"0102\",\"to\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"to_session\":\"1112131415161718\",\"v\":1}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001.json"
+    },
+    {
+      "error": "format_too_new",
+      "json": "{\"device_id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"sdp\":\"v=0\\r\\n\",\"session\":\"0102030405060708\",\"to\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"to_session\":\"1112131415161718\",\"v\":2}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001.json"
+    },
+    {
+      "error": "corrupt",
+      "json": "[]",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001.json"
+    }
+  ],
+  "invalid_keys": [
+    "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer.json",
+    "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/online-018bcfe568000001.txt",
+    "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/online-18bcfe568000001.json",
+    "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-018bcfe568000001.json",
+    "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001-x.json",
+    "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/hello-018bcfe568000001.json",
+    "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/x/online-018bcfe568000001.json"
+  ],
+  "valid": [
+    {
+      "device_id": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+      "hlc": "018bcfe568000001",
+      "json": "{\"device_id\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"session\":\"1112131415161718\",\"v\":1}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2/online-018bcfe568000001.json",
+      "kind": "online",
+      "peer": null,
+      "sealed": {
+        "ct": "5G4i5fhqyCzTcsEyZuqkfDSwM29ktHih314miJNjq+stCsRGqvqwrLKdc7JjUehdKtKu2ZyRBIvk3HCYlRrKoyE5M78/y/jEvUMd79j6o0l9vcbt21U0/W8sgLEkgoxkQmXF",
+        "nonce": "EBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ",
+        "sealed": "xchacha20poly1305"
+      }
+    },
+    {
+      "device_id": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "hlc": "018bcfe568000001",
+      "json": "{\"device_id\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"sdp\":\"v=0\\r\\no=- 1 1 IN IP4 0.0.0.0\\r\\ns=-\\r\\nt=0 0\\r\\n\",\"session\":\"0102030405060708\",\"to\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"to_session\":\"1112131415161718\",\"v\":1}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1/offer-b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2-018bcfe568000001.json",
+      "kind": "offer",
+      "peer": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+      "sealed": {
+        "ct": "h3jGCPwy+c5jsjfLOCCzC29hpuIxLOp69J60BiA9V9Nn8keXuB4vUa6cSbJN10UZ4r8zeQmGBkwxlGLl7HODg9x4xkwUdWEKtkXkInjsvwGGleoLoHCc7XCoc5CZzJZLTM9Ne9bLRHWrGNuS/DDNtEsX0ZqWhTnYNDPhrmxePIBt4w+TQGJKELSFiDGQtSn1wWmXcz+OjDS/MAjWrnOlTrGjXP0uiQ7g/OWF78vjMJ6rJqjRZZAIJVrUGdS+FFVeZE3BsvPOakT9SW1zlWKxuxQ0egveDJev+ZiJu+4l/L+LaHtgrQ==",
+        "nonce": "ERERERERERERERERERERERERERERERER",
+        "sealed": "xchacha20poly1305"
+      }
+    },
+    {
+      "device_id": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+      "hlc": "018bcfe568000001",
+      "json": "{\"device_id\":\"b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2\",\"sdp\":\"v=0\\r\\no=- 2 1 IN IP4 0.0.0.0\\r\\ns=-\\r\\nt=0 0\\r\\n\",\"session\":\"1112131415161718\",\"to\":\"a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1\",\"to_session\":\"0102030405060708\",\"v\":1}",
+      "key": "000102030405060708090a0b0c0d0e0f/signaling/b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2/answer-a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1-018bcfe568000001.json",
+      "kind": "answer",
+      "peer": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "sealed": {
+        "ct": "2g2vN/Fo7dY/fV1VEz3y//cKlnDr2AqP2JkFrcZpHsuGO0G/nUuZzOgxvmWvBU89U9PIJaPM0qQMCAexFvNy/dFYBoD6EWu731X5qpIFPGU4Yt1sHvvxGE4u7wRJ+ePAkxS8RnI0SdeRHkaL2hxxRfc5LohycrwrwuwM1ncJ9/kpK43VnV6Xp07giIJ2BPSNuXnV/Q5RH1iWG9tNB4wEelBmuMSyC0F9p/rWnDWCrMdpttkdw0zLZS3zRn3fhB3uMKL6dHxvpipCAZ8FMOQ9/VKIzYfwHOz6/KP/3yDcWZ+MNlElBA==",
+        "nonce": "EhISEhISEhISEhISEhISEhISEhISEhIS",
+        "sealed": "xchacha20poly1305"
+      }
+    }
+  ]
+}

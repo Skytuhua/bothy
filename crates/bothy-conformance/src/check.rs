@@ -332,5 +332,6 @@ pub fn check_dir(dir: &Path) -> Res<usize> {
         }
     }
     total += crate::crypto_vectors::check(dir)?;
+    total += crate::signal_vectors::check(dir)?;
     Ok(total)
 }

@@ -8,6 +8,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+### Added
+
+- Signaling files for the upcoming P2P channel: `KeyKind::Signal` with `SignalKind`
+  (`<db_id>/signaling/<device_id>/{online-<hlc>,offer-<peer>-<hlc>,answer-<peer>-<hlc>}.json`)
+  and `codec::signal` for their documents and lifetimes. Sync ignores them; 0.3 readers
+  already skip the prefix. Conformance vectors in `spec/vectors/signaling.json`.
+
+### Changed
+
+- `codec::keys::KeyKind` is `#[non_exhaustive]`.
+
 ## [0.3.0]
 
 Python and embedded Linux. On-remote format unchanged (`bothy_format = 1`). The Python

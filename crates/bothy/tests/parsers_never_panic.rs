@@ -3,9 +3,10 @@
 
 use bothy::codec::cbor::{Decoder, decode_value, encode_value};
 use bothy::codec::decode_op;
-use bothy::codec::keys::LogicalKey;
+use bothy::codec::keys::{LogicalKey, SignalKind};
 use bothy::codec::manifest::Manifest;
 use bothy::codec::segment::{self, Segment};
+use bothy::codec::signal::Signal;
 use bothy::codec::snapshot::{self, SnapshotHeader, SnapshotReader, SnapshotWriter};
 use bothy::merge::{DocState, FieldState};
 use bothy::{CollectionName, DbId, DeviceId, DocId, FieldName, Hlc, Op, OpKind, Stamp, Value};
@@ -122,6 +123,29 @@ proptest! {
         let _ = bothy::codec::manifest::KeyFile::from_json(text.as_bytes());
         #[cfg(feature = "crypto")]
         let _ = bothy::crypto::open_json(&bothy::crypto::DataKey::from_bytes([1; 32]), "k", text.as_bytes());
+        if let Some(k) = LogicalKey::parse(&text) {
+            prop_assert_eq!(k.to_string(), text);
+        }
+    }
+
+    #[test]
+    fn signaling_documents(text in ".{0,200}", offer in any::<bool>()) {
+        let kind = if offer { SignalKind::Offer(DeviceId::from_bytes([3; 16])) } else { SignalKind::Online };
+        let key = LogicalKey::signal(DB, DEV, kind, Hlc::from_u64(1));
+        if let Ok(doc) = Signal::from_json(&key, text.as_bytes()) {
+            prop_assert_eq!(Signal::from_json(&key, &doc.to_json(&key)).unwrap(), doc);
+        }
+    }
+
+    #[test]
+    fn signaling_keys(dev in "[0-9a-f]{32}", peer in "[0-9a-f]{30,33}", hlc in "[0-9a-fA-F]{14,17}", kind in 0..4u8) {
+        let name = match kind {
+            0 => format!("online-{hlc}.json"),
+            1 => format!("offer-{peer}-{hlc}.json"),
+            2 => format!("answer-{peer}-{hlc}.json"),
+            _ => format!("offer-{hlc}.json"),
+        };
+        let text = format!("{DB}/signaling/{dev}/{name}");
         if let Some(k) = LogicalKey::parse(&text) {
             prop_assert_eq!(k.to_string(), text);
         }
