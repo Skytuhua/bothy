@@ -1,0 +1,18 @@
+## 0.3.0
+
+First release with the sync engine: a native module (pyo3, abi3 wheels for CPython 3.9+ on
+Linux x86_64/aarch64/armv7, macOS and Windows) around the Rust core's blocking API.
+
+- `Database.open` with a folder or Google Drive remote (`DriveRemote.appdata`,
+  `DriveRemote.folder`), `init_or_join`, collections (`put`, `patch`, `get`, `list`, `all`,
+  `delete`), `sync`, `changes`, `start_auto_sync`, `status`, `conflicts`, `clear_conflicts`;
+  usable as a context manager. Calls release the GIL.
+- Encryption: `encrypt`/`password`/`key` on open, `unlock`, `lock`, `export_key`,
+  `change_password`.
+- `bothy.auth`: device flow and loopback sign-in, `Grant` (saved with owner-only permissions)
+  and `TokenProvider`; any `(force_refresh) -> str` callable works as a token source.
+- One exception subclass per engine error kind under `BothyError`.
+
+## 0.0.1
+
+- Name reservation: the hybrid logical clock type.
