@@ -15,9 +15,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   and `codec::signal` for their documents and lifetimes. Sync ignores them; 0.3 readers
   already skip the prefix. Conformance vectors in `spec/vectors/signaling.json`.
 
+- Direct channels between online devices (`p2p` feature, on by default but inactive until
+  `Config::p2p(P2pConfig)`): while background sync runs, devices find each other through
+  signaling files and open a WebRTC data channel ([str0m](https://crates.io/crates/str0m),
+  ICE with host and STUN candidates, `stun.l.google.com` by default, no TURN). After uploading
+  a segment, a device sends it (up to 64 KiB, otherwise an announcement) to its peers, which
+  apply it at once. The remote stays the durable record. `Database::p2p_status()`, in the
+  blocking API too.
+- `AutoSync::p2p_debounce` (250 ms): the write debounce while a channel is open.
+
 ### Changed
 
 - `codec::keys::KeyKind` is `#[non_exhaustive]`.
+- `AutoSync` has a new field; struct literals need `..AutoSync::default()`.
+- The `p2p` feature builds `aws-lc-sys` (C) through str0m's DTLS stack.
 
 ## [0.3.0]
 

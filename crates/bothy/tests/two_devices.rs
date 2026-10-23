@@ -296,6 +296,7 @@ async fn auto_sync_delivers_changes_in_the_background() {
         max_delay: Duration::from_millis(100),
         poll_interval: Duration::from_millis(50),
         max_backoff: Duration::from_secs(1),
+        ..AutoSync::default()
     };
     let ha = a.start_auto_sync(opts);
     let hb = b.start_auto_sync(opts);

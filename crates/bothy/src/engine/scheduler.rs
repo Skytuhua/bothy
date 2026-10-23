@@ -20,7 +20,15 @@ pub struct AutoSync {
     pub poll_interval: Duration,
     /// Cap of the exponential backoff after failures.
     pub max_backoff: Duration,
+    /// Quiet time after a local write while a direct channel to a peer is open
+    /// ([`crate::Config::p2p`]), so the peer sees it quickly.
+    pub p2p_debounce: Duration,
 }
+
+/// Polling while a direct channel is being set up, to pick up the peer's answer.
+const SIGNALING_POLL: Duration = Duration::from_secs(3);
+/// Polls after a peer announced a segment too large to send, until the remote lists it.
+const HINT_FOLLOW_UP: [Duration; 2] = [Duration::from_secs(2), Duration::from_secs(5)];
 
 impl Default for AutoSync {
     fn default() -> Self {
@@ -29,6 +37,7 @@ impl Default for AutoSync {
             max_delay: Duration::from_secs(10),
             poll_interval: Duration::from_secs(30),
             max_backoff: Duration::from_secs(15 * 60),
+            p2p_debounce: Duration::from_millis(250),
         }
     }
 }
@@ -101,21 +110,48 @@ pub(crate) fn start(inner: Arc<Inner>, opts: AutoSync) -> SyncHandle {
     let (stop_tx, mut stop_rx) = oneshot::channel();
     let (status_tx, status_rx) = watch::channel(SyncStatus::Idle);
     let task = tokio::spawn(async move {
+        #[cfg(feature = "p2p")]
+        let p2p = inner
+            .p2p_config
+            .clone()
+            .map(|config| crate::p2p::start(&inner, config));
+        #[cfg(feature = "p2p")]
+        let stop_p2p = |p2p: Option<tokio::task::JoinHandle<()>>| {
+            let inner = inner.clone();
+            async move {
+                if let Some(task) = p2p {
+                    crate::p2p::stop(&inner, task).await;
+                }
+            }
+        };
+        #[cfg(not(feature = "p2p"))]
+        let (p2p, stop_p2p) = ((), |_: ()| async {});
         let mut backoff = Duration::ZERO;
         let mut next_poll = Instant::now();
+        let mut follow_ups: Vec<Duration> = Vec::new();
         loop {
-            // Wait for a local write, the poll timer or a retry after a failure.
+            // Wait for a local write, the poll timer, a peer's hint or a retry after a failure.
             let local = tokio::select! {
-                _ = &mut stop_rx => return,
+                _ = &mut stop_rx => return stop_p2p(p2p).await,
                 _ = inner.poke.notified() => true,
+                _ = inner.remote_hint.notified() => {
+                    follow_ups = HINT_FOLLOW_UP.to_vec();
+                    false
+                }
                 _ = sleep_until(next_poll) => false,
             };
             if local {
                 let deadline = Instant::now() + opts.max_delay;
                 loop {
-                    let quiet = Instant::now() + opts.debounce;
+                    let (connected, _) = inner.p2p_activity();
+                    let debounce = if connected {
+                        opts.p2p_debounce
+                    } else {
+                        opts.debounce
+                    };
+                    let quiet = Instant::now() + debounce;
                     tokio::select! {
-                        _ = &mut stop_rx => return,
+                        _ = &mut stop_rx => return stop_p2p(p2p).await,
                         _ = inner.poke.notified() => {
                             if Instant::now() >= deadline { break; }
                         }
@@ -138,12 +174,15 @@ pub(crate) fn start(inner: Arc<Inner>, opts: AutoSync) -> SyncHandle {
             };
             let _ = status_tx.send(status);
             // After a failure the next attempt waits for the backoff, not the poll interval.
-            next_poll = Instant::now()
-                + if backoff.is_zero() {
-                    opts.poll_interval
-                } else {
-                    backoff
-                };
+            let (_, signaling) = inner.p2p_activity();
+            let poll = if !follow_ups.is_empty() {
+                follow_ups.remove(0)
+            } else if signaling {
+                opts.poll_interval.min(SIGNALING_POLL)
+            } else {
+                opts.poll_interval
+            };
+            next_poll = Instant::now() + if backoff.is_zero() { poll } else { backoff };
         }
     });
     SyncHandle {
