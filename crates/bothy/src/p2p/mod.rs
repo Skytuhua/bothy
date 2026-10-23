@@ -102,6 +102,9 @@ pub struct PeerStatus {
 pub struct P2pStatus {
     /// Whether P2P is running (it runs with background sync when configured).
     pub running: bool,
+    /// Looking for peers or waiting for one to answer: background sync polls every few
+    /// seconds meanwhile.
+    pub discovering: bool,
     /// Peers this device knows about, by device id.
     pub peers: Vec<PeerStatus>,
 }
@@ -147,6 +150,7 @@ pub(crate) fn start(inner: &Arc<Inner>, config: P2pConfig) -> tokio::task::JoinH
     let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
     let (status_tx, status_rx) = watch::channel(P2pStatus {
         running: true,
+        discovering: true,
         peers: Vec::new(),
     });
     inner.set_p2p(Some(Link {

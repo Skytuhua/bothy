@@ -84,6 +84,8 @@ pub enum Command {
         /// Keep syncing in the background until Ctrl-C.
         #[arg(long)]
         watch: bool,
+        #[command(flatten)]
+        p2p: P2p,
     },
     /// Pending changes, last sync and known devices.
     Status,
@@ -112,6 +114,9 @@ pub enum Command {
     /// Debugging views.
     #[command(subcommand)]
     Inspect(Inspect),
+    /// Measurements (for development; output may change).
+    #[command(subcommand, hide = true)]
+    Bench(Bench),
     /// Print documents as JSON lines, sorted (identical on converged devices).
     Export {
         /// Collection to export.
@@ -143,6 +148,62 @@ pub enum Auth {
     Logout,
     /// Show the sign-in state (never prints tokens).
     Status,
+}
+
+/// Direct channels to other online devices while syncing in the background.
+#[derive(Args, Debug, Clone)]
+pub struct P2p {
+    /// With --watch: open direct channels to other online devices, so their writes arrive
+    /// within about a second.
+    #[arg(long)]
+    pub p2p: bool,
+    /// STUN servers (host:port, comma-separated) to reach peers outside the local network.
+    #[arg(
+        long,
+        value_delimiter = ',',
+        requires = "p2p",
+        conflicts_with = "no_stun"
+    )]
+    pub stun: Vec<String>,
+    /// No STUN server: direct channels only on the local network.
+    #[arg(long, requires = "p2p")]
+    pub no_stun: bool,
+    /// Local address to offer to peers instead of the detected one.
+    #[arg(long, requires = "p2p", hide = true)]
+    pub host: Option<std::net::IpAddr>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Bench {
+    /// Time from a write on one device until another device sees it.
+    Propagate {
+        /// A second local database joined to the same remote database (same machine,
+        /// same clock). Without it, `bench echo` must run on the other device.
+        #[arg(long)]
+        peer: Option<String>,
+        /// Number of writes.
+        #[arg(long, default_value_t = 50)]
+        count: u32,
+        /// Pause between writes, in milliseconds.
+        #[arg(long, default_value_t = 1000)]
+        interval_ms: u64,
+        /// Give up on a write after this many seconds.
+        #[arg(long, default_value_t = 60)]
+        timeout: u64,
+        /// Announce segments over the channel instead of sending them.
+        #[arg(long)]
+        no_inline: bool,
+        /// Measure without direct channels (polling only).
+        #[arg(long)]
+        no_p2p: bool,
+        #[command(flatten)]
+        p2p: P2p,
+    },
+    /// Answer `bench propagate` from another device: acknowledge each write when it arrives.
+    Echo {
+        #[command(flatten)]
+        p2p: P2p,
+    },
 }
 
 #[derive(Args, Debug)]

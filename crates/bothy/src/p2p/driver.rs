@@ -34,6 +34,8 @@ const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 const STUN_WAIT: Duration = Duration::from_millis(1500);
 /// Housekeeping tick when nothing else is due.
 const TICK: Duration = Duration::from_secs(1);
+/// After we come online or see a new peer, offers and answers are likely: poll fast this long.
+const DISCOVERY: Duration = Duration::from_secs(60);
 
 /// A peer seen online.
 #[derive(Clone, Copy)]
@@ -94,6 +96,7 @@ struct Driver {
     seen: HashSet<String>,
     our_online: Option<String>,
     next_online: Instant,
+    discover_until: Instant,
     incoming_tx: mpsc::UnboundedSender<Incoming>,
     status: watch::Sender<P2pStatus>,
 }
@@ -149,6 +152,7 @@ pub(super) async fn run(
         seen: HashSet::new(),
         our_online: None,
         next_online: Instant::now(),
+        discover_until: Instant::now() + DISCOVERY,
         incoming_tx,
         status,
     };
@@ -388,6 +392,10 @@ impl Driver {
                 self.seen.insert(key);
                 match (kind, signal) {
                     (SignalKind::Online, Signal::Online { session }) => {
+                        let new = self.online.get(&from).is_none_or(|o| o.session != session);
+                        if new {
+                            self.discover_until = Instant::now() + DISCOVERY;
+                        }
                         self.online.insert(
                             from,
                             Online {
@@ -411,7 +419,7 @@ impl Driver {
 
     /// Offers to `peer` if we are the offerer (smaller id) and have no live attempt.
     fn maybe_offer(&mut self, peer: DeviceId) {
-        if self.me >= peer || self.our_online.is_none() {
+        if self.me >= peer {
             return;
         }
         let Some(online) = self.online.get(&peer).copied() else {
@@ -741,6 +749,16 @@ impl Driver {
             }
             self.maybe_offer(dev);
         }
+        // Online peers we have not tried yet (e.g. seen before the database id was known).
+        let untried: Vec<DeviceId> = self
+            .online
+            .keys()
+            .filter(|d| **d > self.me && !self.peers.contains_key(d))
+            .copied()
+            .collect();
+        for dev in untried {
+            self.maybe_offer(dev);
+        }
         let wall = Self::wall_ms();
         self.online.retain(|_, o| o.expires_ms >= wall);
     }
@@ -780,11 +798,14 @@ impl Driver {
             })
             .collect();
         peers.sort_by_key(|p| p.device_id);
+        let discovering = Instant::now() < self.discover_until
+            || self.peers.values().any(|p| p.state == PeerState::Signaling);
         self.status.send_if_modified(|s| {
-            if s.peers == peers {
+            if s.peers == peers && s.discovering == discovering {
                 false
             } else {
                 s.peers = peers;
+                s.discovering = discovering;
                 true
             }
         });
@@ -804,6 +825,7 @@ impl Driver {
         }
         self.status.send_modify(|s| {
             s.running = false;
+            s.discovering = false;
             s.peers.clear();
         });
     }

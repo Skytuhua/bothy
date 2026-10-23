@@ -15,7 +15,7 @@ use bothy::{
 };
 use serde_json::{Value as J, json};
 
-use crate::cli::{Auth, Command, Devices, Init, Inspect, Join, Setup, Snapshot};
+use crate::cli::{Auth, Bench, Command, Devices, Init, Inspect, Join, P2p, Setup, Snapshot};
 use crate::config::{CliConfig, DbEntry, Paths, RemoteSpec, check_db_name, write_private};
 use crate::fail::{CliError, CliResult};
 use crate::oauth::{self, SCOPE_APPDATA, SCOPE_FILE};
@@ -237,6 +237,173 @@ async fn encrypted_db_id(db: &Database) -> CliResult<DbId> {
         return Err(CliError::usage("this database is not encrypted"));
     }
     Ok(db_id)
+}
+
+/// Opens the database with direct channels as asked by the P2P flags.
+async fn open_p2p(ctx: &Ctx, p2p: &P2p, inline: bool) -> CliResult<Database> {
+    if !p2p.p2p {
+        return open(ctx).await;
+    }
+    let config = CliConfig::load(&ctx.paths)?;
+    let entry = entry(ctx, &config)?;
+    let mut cfg = bothy::p2p::P2pConfig::new().inline_segments(inline);
+    if p2p.no_stun {
+        cfg = cfg.stun_servers(Vec::new());
+    } else if !p2p.stun.is_empty() {
+        cfg = cfg.stun_servers(p2p.stun.clone());
+    }
+    if let Some(ip) = p2p.host {
+        cfg = cfg.host_address(ip);
+    }
+    let db = open_db_with(ctx, &entry, |c| c.p2p(cfg)).await?;
+    if let Some(db_id) = db.db_id().await?
+        && db.is_locked().await?
+        && let Some(key) = secrets::remembered(&ctx.paths, db_id)
+    {
+        let _ = db.unlock_with_key(key).await;
+    }
+    Ok(db)
+}
+
+const BENCH: &str = "bench";
+
+struct BenchOpts {
+    count: u32,
+    interval: std::time::Duration,
+    timeout: std::time::Duration,
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// Waits until `db` has an open channel, up to `limit`.
+async fn wait_connected(db: &Database, limit: std::time::Duration) -> bool {
+    let start = std::time::Instant::now();
+    while start.elapsed() < limit {
+        if db.p2p_status().connected() > 0 {
+            return true;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    }
+    false
+}
+
+fn summary(mut ms: Vec<u64>, count: u32, connect_ms: Option<u64>) -> J {
+    ms.sort_unstable();
+    let pick = |q: usize| {
+        ms.get((ms.len() * q / 100).min(ms.len().saturating_sub(1)))
+            .copied()
+    };
+    json!({
+        "count": count,
+        "arrived": ms.len(),
+        "p50_ms": pick(50),
+        "p95_ms": pick(95),
+        "max_ms": ms.last(),
+        "connect_ms": connect_ms,
+        "samples_ms": ms,
+    })
+}
+
+/// Two local databases of the same remote database, in this process.
+async fn bench_pair(a: &Database, b: &Database, p2p: bool, o: &BenchOpts) -> CliResult<J> {
+    let ha = a.start_auto_sync(AutoSync::default());
+    let hb = b.start_auto_sync(AutoSync::default());
+    let started = std::time::Instant::now();
+    let connect_ms = if p2p {
+        if !(wait_connected(a, std::time::Duration::from_secs(180)).await
+            && wait_connected(b, std::time::Duration::from_secs(30)).await)
+        {
+            ha.stop().await;
+            hb.stop().await;
+            return Err(CliError::usage("no direct channel within 3 minutes"));
+        }
+        Some(started.elapsed().as_millis() as u64)
+    } else {
+        None
+    };
+    let bench = a.collection(BENCH)?;
+    let run = now_ms();
+    let mut got = Vec::new();
+    for i in 0..o.count {
+        let id = format!("p{run}-{i:04}");
+        let mut events = b.subscribe();
+        let sent = std::time::Instant::now();
+        bench.put(&id, json!({"sent_ms": now_ms()})).await?;
+        let arrived = tokio::time::timeout(o.timeout, async {
+            loop {
+                match events.recv().await {
+                    Ok(e) if e.origin == Origin::Remote && e.doc_id.as_str() == id => return,
+                    Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                    Err(_) => std::future::pending::<()>().await,
+                }
+            }
+        })
+        .await;
+        if arrived.is_ok() {
+            got.push(sent.elapsed().as_millis() as u64);
+        }
+        tokio::time::sleep(o.interval).await;
+    }
+    ha.stop().await;
+    hb.stop().await;
+    Ok(summary(got, o.count, connect_ms))
+}
+
+/// Writes to a device running `bench echo` and times its acknowledgements (one way, from the
+/// other device's clock, and round trip).
+async fn bench_remote(a: &Database, p2p: bool, o: &BenchOpts) -> CliResult<J> {
+    let ha = a.start_auto_sync(AutoSync::default());
+    let started = std::time::Instant::now();
+    let connect_ms = if p2p {
+        if !wait_connected(a, std::time::Duration::from_secs(180)).await {
+            ha.stop().await;
+            return Err(CliError::usage(
+                "no direct channel within 3 minutes; is `bench echo` running?",
+            ));
+        }
+        Some(started.elapsed().as_millis() as u64)
+    } else {
+        None
+    };
+    let bench = a.collection(BENCH)?;
+    let run = now_ms();
+    let (mut one_way, mut round) = (Vec::new(), Vec::new());
+    for i in 0..o.count {
+        let id = format!("p{run}-{i:04}");
+        let ack = format!("a{run}-{i:04}");
+        let mut events = a.subscribe();
+        let sent = std::time::Instant::now();
+        bench.put(&id, json!({"sent_ms": now_ms()})).await?;
+        let arrived = tokio::time::timeout(o.timeout, async {
+            loop {
+                match events.recv().await {
+                    Ok(e) if e.origin == Origin::Remote && e.doc_id.as_str() == ack => return,
+                    Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                    Err(_) => std::future::pending::<()>().await,
+                }
+            }
+        })
+        .await;
+        if arrived.is_ok() {
+            round.push(sent.elapsed().as_millis() as u64);
+            if let Some(doc) = bench.get(&ack).await? {
+                let d = doc.to_json();
+                if let (Some(s), Some(r)) = (d["sent_ms"].as_u64(), d["recv_ms"].as_u64()) {
+                    one_way.push(r.saturating_sub(s));
+                }
+            }
+        }
+        tokio::time::sleep(o.interval).await;
+    }
+    ha.stop().await;
+    let mut out = summary(one_way, o.count, connect_ms);
+    out["round_trip"] = summary(round, o.count, None);
+    Ok(out)
 }
 
 async fn open(ctx: &Ctx) -> CliResult<Database> {
@@ -625,7 +792,7 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
             Ok(())
         }
 
-        Command::Sync { watch: false } => {
+        Command::Sync { watch: false, .. } => {
             let db = open(&ctx).await?;
             unlocked(&ctx, &db).await?;
             let report = db.sync().await?;
@@ -633,16 +800,30 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
             Ok(())
         }
 
-        Command::Sync { watch: true } => {
-            let db = open(&ctx).await?;
+        Command::Sync { watch: true, p2p } => {
+            let db = open_p2p(&ctx, &p2p, true).await?;
             unlocked(&ctx, &db).await?;
             let mut events = db.subscribe();
             let handle = db.start_auto_sync(AutoSync::default());
             let mut status = handle.watch();
             eprintln!("syncing in the background; press Ctrl-C to stop");
+            let mut peers = db.p2p_status().peers;
+            let mut tick = tokio::time::interval(std::time::Duration::from_secs(1));
             loop {
                 tokio::select! {
                     _ = tokio::signal::ctrl_c() => break,
+                    _ = tick.tick(), if p2p.p2p => {
+                        let now = db.p2p_status().peers;
+                        for p in &now {
+                            if !peers.iter().any(|q| q == p) {
+                                let state = format!("{:?}", p.state).to_lowercase();
+                                ctx.out(json!({"event": "peer", "device_id": p.device_id.to_hex(), "state": state}), || {
+                                    format!("peer {} {state}", p.device_id)
+                                });
+                            }
+                        }
+                        peers = now;
+                    }
                     Ok(e) = events.recv() => {
                         if e.origin == Origin::Remote {
                             ctx.out(json!({"event": "change", "collection": e.collection.as_str(), "id": e.doc_id.as_str()}), || {
@@ -965,6 +1146,87 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
             } else {
                 Err(CliError::other("plain text found in remote files"))
             }
+        }
+
+        Command::Bench(Bench::Propagate {
+            peer,
+            count,
+            interval_ms,
+            timeout,
+            no_inline,
+            no_p2p,
+            p2p,
+        }) => {
+            let p2p = P2p {
+                p2p: !no_p2p,
+                ..p2p
+            };
+            let opts = BenchOpts {
+                count,
+                interval: std::time::Duration::from_millis(interval_ms),
+                timeout: std::time::Duration::from_secs(timeout),
+            };
+            let a = open_p2p(&ctx, &p2p, !no_inline).await?;
+            unlocked(&ctx, &a).await?;
+            let result = match peer {
+                Some(name) => {
+                    let peer_ctx = Ctx {
+                        paths: ctx.paths.clone(),
+                        json: ctx.json,
+                        db: name,
+                        password_stdin: ctx.password_stdin,
+                    };
+                    let b = open_p2p(&peer_ctx, &p2p, !no_inline).await?;
+                    unlocked(&peer_ctx, &b).await?;
+                    if a.db_id().await? != b.db_id().await? || a.db_id().await?.is_none() {
+                        return Err(CliError::usage(
+                            "--peer must be another local database joined to the same remote database",
+                        ));
+                    }
+                    bench_pair(&a, &b, p2p.p2p, &opts).await?
+                }
+                None => bench_remote(&a, p2p.p2p, &opts).await?,
+            };
+            ctx.out(result.clone(), || {
+                format!(
+                    "{} of {} arrived; p50 {} ms, p95 {} ms, max {} ms (p2p {}, inline {})",
+                    result["arrived"],
+                    count,
+                    result["p50_ms"],
+                    result["p95_ms"],
+                    result["max_ms"],
+                    p2p.p2p,
+                    !no_inline && p2p.p2p
+                )
+            });
+            Ok(())
+        }
+
+        Command::Bench(Bench::Echo { p2p }) => {
+            let db = open_p2p(&ctx, &p2p, true).await?;
+            unlocked(&ctx, &db).await?;
+            let handle = db.start_auto_sync(AutoSync::default());
+            let mut events = db.subscribe();
+            let bench = db.collection(BENCH)?;
+            eprintln!("acknowledging bench writes; press Ctrl-C to stop");
+            loop {
+                tokio::select! {
+                    _ = tokio::signal::ctrl_c() => break,
+                    Ok(e) = events.recv() => {
+                        let id = e.doc_id.as_str().to_owned();
+                        if e.origin != Origin::Remote || e.collection.as_str() != BENCH || !id.starts_with('p') {
+                            continue;
+                        }
+                        let ack = format!("a{}", &id[1..]);
+                        if let Some(doc) = bench.get(&id).await? {
+                            let sent = doc.to_json()["sent_ms"].clone();
+                            bench.put(&ack, json!({"sent_ms": sent, "recv_ms": now_ms()})).await?;
+                        }
+                    }
+                }
+            }
+            handle.stop().await;
+            Ok(())
         }
 
         Command::Export { collection, all } => {
