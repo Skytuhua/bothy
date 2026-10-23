@@ -41,7 +41,8 @@ impl Database {
         let rt = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(1)
             .thread_name("bothy")
-            .enable_time()
+            // IO as well as timers: the Drive remote's HTTP client needs the IO driver.
+            .enable_all()
             .build()
             .map_err(|e| Error::new(ErrorKind::Internal, "cannot start runtime").with_source(e))?;
         let db = rt.block_on(crate::Database::open(config, remote))?;
