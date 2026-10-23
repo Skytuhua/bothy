@@ -592,3 +592,21 @@ async fn two_devices_sync_through_a_fake_drive() {
     // manifest, two device.json files and two segments.
     assert_eq!(fake.files.lock().unwrap().len(), 5);
 }
+
+/// The blocking facade drives the remote on its own runtime, and Drive's HTTP client needs
+/// that runtime's IO driver: a network failure comes back as `Offline`, not as a panic.
+#[cfg(feature = "blocking")]
+#[test]
+fn blocking_database_talks_to_drive() {
+    let dir = tempfile::tempdir().unwrap();
+    let remote = DriveRemote::appdata(Arc::new(Tokens::default()))
+        .unwrap()
+        .with_base_url("http://127.0.0.1:9")
+        .with_retry(fast());
+    let db = bothy::blocking::Database::open(
+        Config::new(dir.path().join("a.db"), "com.example.notes"),
+        Arc::new(remote),
+    )
+    .unwrap();
+    assert_eq!(db.init_or_join().unwrap_err().kind(), ErrorKind::Offline);
+}
