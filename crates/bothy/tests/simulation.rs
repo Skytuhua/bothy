@@ -10,6 +10,9 @@
 //! `BOTHY_SIM_TRACE=1` every step is printed, and a mismatch prints the differing documents.
 //! `BOTHY_SIM_NO_CLONE=1` turns off restored copies, to tell fork bugs from others.
 //! Every fourth seed runs an encrypted database (with the `crypto` feature).
+//!
+//! Peers also hand each other segments the way the P2P channel does: any segment on the remote,
+//! late, repeated or with a flipped byte. These are hints only, so the outcome must not change.
 #![cfg(feature = "test-util")]
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -80,6 +83,8 @@ struct Stats {
     snapshots: u64,
     compacted_files: u64,
     forks: u64,
+    peer_segments: u64,
+    peer_rejected: u64,
 }
 
 impl Stats {
@@ -90,6 +95,8 @@ impl Stats {
         self.snapshots += o.snapshots;
         self.compacted_files += o.compacted_files;
         self.forks += o.forks;
+        self.peer_segments += o.peer_segments;
+        self.peer_rejected += o.peer_rejected;
     }
 }
 
@@ -284,6 +291,44 @@ impl Sim {
         self.cloned_ids.insert(id);
     }
 
+    /// What the P2P channel does, with its failure modes: device `i` receives the bytes of a
+    /// random remote segment (possibly old or already applied), once or twice, sometimes with
+    /// a byte flipped in transit.
+    async fn peer_segment(&mut self, i: usize) {
+        let folder = FolderRemote::new(self.dir.path().join("remote")).unwrap();
+        let mut segments: Vec<(DeviceId, u64, String)> = Vec::new();
+        for e in folder.list("").await.unwrap() {
+            if let Some(LogicalKey {
+                kind: KeyKind::Segment(dev, seq),
+                ..
+            }) = LogicalKey::parse(&e.key)
+            {
+                segments.push((dev, seq, e.key));
+            }
+        }
+        if segments.is_empty() {
+            return;
+        }
+        segments.sort();
+        let pick = self.rng.below(segments.len() as u64) as usize;
+        let (dev, seq, key) = segments[pick].clone();
+        let Some(mut bytes) = folder.get(&key).await.unwrap() else {
+            return;
+        };
+        if self.rng.below(5) == 0 {
+            let at = self.rng.below(bytes.len() as u64) as usize;
+            bytes[at] ^= 0x40;
+        }
+        let copies = 1 + self.rng.below(2);
+        let db = self.db(i).await;
+        for _ in 0..copies {
+            match db.apply_peer_segment(dev, seq, bytes.clone()).await {
+                Ok(_) => self.stats.peer_segments += 1,
+                Err(_) => self.stats.peer_rejected += 1,
+            }
+        }
+    }
+
     async fn run(&mut self) -> Stats {
         let db_id = self.setup().await;
         let mut cloned = false;
@@ -328,10 +373,11 @@ impl Sim {
                     cloned = true;
                     self.clone_device(i).await;
                 }
-                86..=92 => {
+                86..=88 => {
                     let ms = self.rng.below(5_000);
                     self.base.fetch_add(ms, Ordering::SeqCst);
                 }
+                89..=92 => self.peer_segment(i).await,
                 _ => {
                     // Clock skew: up to 10 minutes ahead or 10 seconds behind.
                     let skew = if self.rng.below(2) == 0 {
@@ -551,7 +597,9 @@ async fn run_range(block: u64) {
                 && t.ok_syncs > 0
                 && t.snapshots > 0
                 && t.compacted_files > 0
-                && t.forks > 0,
+                && t.forks > 0
+                && t.peer_segments > 0
+                && t.peer_rejected > 0,
             "not every fault or feature was exercised: {t:?}"
         );
     }

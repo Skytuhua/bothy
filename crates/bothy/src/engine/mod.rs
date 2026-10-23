@@ -220,6 +220,8 @@ async fn push(inner: &Arc<Inner>, db_id: DbId, report: &mut SyncReport) -> Resul
                         })
                         .await?;
                     report.segments_up += 1;
+                    // Only now, with the bytes on the remote, may peers apply them.
+                    inner.p2p_announce(seq, &p.bytes);
                 }
                 Ok(PutOutcome::AlreadyExists {
                     same_content: false,
@@ -422,6 +424,7 @@ pub(crate) async fn sync(inner: &Arc<Inner>) -> Result<SyncReport> {
     sync_key(inner).await?;
     let mut report = SyncReport::default();
     let fetched = fetch(inner, db_id).await?;
+    inner.p2p_signals(&fetched.entries);
     check_fork(inner, db_id, &fetched.entries, &mut report).await?;
     match push(inner, db_id, &mut report).await {
         Ok(()) => {}
@@ -439,3 +442,42 @@ pub(crate) async fn sync(inner: &Arc<Inner>) -> Result<SyncReport> {
 }
 
 pub(crate) use scheduler::start as start_auto_sync;
+
+/// Applies a segment a connected peer sent right after uploading it. The same checks as a pull
+/// apply (header, data key); a segment already applied, or one for another database, is a no-op.
+#[cfg_attr(not(feature = "p2p"), allow(dead_code))]
+pub(crate) async fn apply_pushed(
+    inner: &Arc<Inner>,
+    device: DeviceId,
+    seq: u64,
+    bytes: Vec<u8>,
+) -> Result<usize> {
+    let Some(db_id) = inner.store(|s| s.db_id()).await? else {
+        return Ok(0);
+    };
+    if device == inner.device() || inner.store(move |s| s.is_applied(device, seq)).await? {
+        return Ok(0);
+    }
+    let data_key = sync_key(inner).await?;
+    let expected = segment::Expected {
+        db_id,
+        device_id: device,
+        seq,
+    };
+    let seg = segment::decode_with(&bytes, &expected, data_key.as_ref())?;
+    let size = bytes.len();
+    let changed = inner
+        .store(move |s| {
+            let changed = s.apply_remote(device, seq, &seg.ops)?;
+            if changed.is_some() {
+                s.count_segment(size)?;
+            }
+            Ok(changed)
+        })
+        .await?;
+    let n = changed.as_ref().map_or(0, Vec::len);
+    for (c, d) in changed.into_iter().flatten() {
+        inner.emit(c, d, Origin::Remote);
+    }
+    Ok(n)
+}

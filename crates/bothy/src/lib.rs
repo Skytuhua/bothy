@@ -48,6 +48,8 @@ mod error;
 mod hlc;
 pub mod merge;
 pub mod model;
+#[cfg(feature = "p2p")]
+pub mod p2p;
 pub mod remote;
 pub mod store;
 

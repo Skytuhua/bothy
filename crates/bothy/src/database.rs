@@ -52,6 +52,8 @@ pub struct Config {
     pub(crate) encrypt: bool,
     #[cfg(feature = "crypto")]
     pub(crate) kdf_cost: (u32, u32, u32),
+    #[cfg(feature = "p2p")]
+    pub(crate) p2p: Option<crate::p2p::P2pConfig>,
 }
 
 /// How a device unlocks an encrypted database.
@@ -90,7 +92,17 @@ impl Config {
             encrypt: false,
             #[cfg(feature = "crypto")]
             kdf_cost: crate::crypto::DEFAULT_KDF_COST,
+            #[cfg(feature = "p2p")]
+            p2p: None,
         }
+    }
+
+    /// Opens direct channels to other online devices while background sync runs, so they see
+    /// each other's writes within about a second. Off by default. See [`crate::p2p`].
+    #[cfg(feature = "p2p")]
+    pub fn p2p(mut self, config: crate::p2p::P2pConfig) -> Self {
+        self.p2p = Some(config);
+        self
     }
 
     /// Creates the database encrypted with this password (`init`), and unlocks with it.
@@ -256,6 +268,12 @@ pub(crate) struct Inner {
     pub(crate) sync_lock: tokio::sync::Mutex<()>,
     pub(crate) events: broadcast::Sender<ChangeEvent>,
     pub(crate) poke: Notify,
+    /// A peer says the remote has something new: sync now, without the debounce.
+    pub(crate) remote_hint: Notify,
+    #[cfg(feature = "p2p")]
+    pub(crate) p2p_config: Option<crate::p2p::P2pConfig>,
+    #[cfg(feature = "p2p")]
+    pub(crate) p2p: Mutex<Option<crate::p2p::Link>>,
 }
 
 impl Inner {
@@ -290,6 +308,75 @@ impl Inner {
         })
         .await
         .map_err(|e| Error::new(ErrorKind::Internal, "store task failed").with_source(e))?
+    }
+
+    #[cfg(feature = "p2p")]
+    pub(crate) fn set_p2p(&self, link: Option<crate::p2p::Link>) {
+        *self.p2p.lock().unwrap_or_else(|e| e.into_inner()) = link;
+    }
+
+    #[cfg(feature = "p2p")]
+    pub(crate) fn take_p2p(&self) -> Option<crate::p2p::Link> {
+        self.p2p.lock().unwrap_or_else(|e| e.into_inner()).take()
+    }
+
+    #[cfg(feature = "p2p")]
+    pub(crate) fn p2p_status(&self) -> crate::p2p::P2pStatus {
+        self.p2p
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+            .map(crate::p2p::Link::status)
+            .unwrap_or_default()
+    }
+
+    /// Tells connected peers about a segment we uploaded.
+    pub(crate) fn p2p_announce(&self, seq: u64, bytes: &[u8]) {
+        #[cfg(feature = "p2p")]
+        if let Some(link) = self.p2p.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+            link.send(crate::p2p::Cmd::Announce {
+                seq,
+                bytes: bytes.to_vec(),
+            });
+        }
+        #[cfg(not(feature = "p2p"))]
+        let _ = (seq, bytes);
+    }
+
+    /// Hands the signaling files a sync saw to the P2P task.
+    pub(crate) fn p2p_signals(&self, entries: &[crate::remote::RemoteEntry]) {
+        #[cfg(feature = "p2p")]
+        if let Some(link) = self.p2p.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+            use crate::codec::keys::{KeyKind, LogicalKey};
+            let signals: Vec<_> = entries
+                .iter()
+                .filter(|e| {
+                    LogicalKey::parse(&e.key).is_some_and(|k| matches!(k.kind, KeyKind::Signal(..)))
+                })
+                .cloned()
+                .collect();
+            if !signals.is_empty() {
+                link.send(crate::p2p::Cmd::Signals(signals));
+            }
+        }
+        #[cfg(not(feature = "p2p"))]
+        let _ = entries;
+    }
+
+    /// Whether a direct channel is open (short write debounce) and whether one is being set up
+    /// (fast polling for the answer).
+    pub(crate) fn p2p_activity(&self) -> (bool, bool) {
+        #[cfg(feature = "p2p")]
+        {
+            let status = self.p2p_status();
+            let signaling = status
+                .peers
+                .iter()
+                .any(|p| p.state == crate::p2p::PeerState::Signaling);
+            (status.connected() > 0, signaling)
+        }
+        #[cfg(not(feature = "p2p"))]
+        (false, false)
     }
 
     pub(crate) fn emit(&self, collection: CollectionName, doc_id: DocId, origin: Origin) {
@@ -337,6 +424,8 @@ impl Database {
             encrypt,
             #[cfg(feature = "crypto")]
             kdf_cost,
+            #[cfg(feature = "p2p")]
+            p2p,
         } = config;
         let store = tokio::task::spawn_blocking(move || {
             Store::open_with(path, clock, id_seed).map(|mut s| {
@@ -359,6 +448,11 @@ impl Database {
                 sync_lock: tokio::sync::Mutex::new(()),
                 events,
                 poke: Notify::new(),
+                remote_hint: Notify::new(),
+                #[cfg(feature = "p2p")]
+                p2p_config: p2p,
+                #[cfg(feature = "p2p")]
+                p2p: Mutex::new(None),
                 key: RwLock::new(None),
                 #[cfg(feature = "crypto")]
                 secret: Mutex::new(secret),
@@ -427,6 +521,25 @@ impl Database {
     /// Stops when the returned handle is stopped or dropped. Needs a Tokio runtime.
     pub fn start_auto_sync(&self, options: AutoSync) -> SyncHandle {
         engine::start_auto_sync(self.inner.clone(), options)
+    }
+
+    /// Direct channels to other devices (empty unless P2P is configured and background sync
+    /// runs).
+    #[cfg(feature = "p2p")]
+    pub fn p2p_status(&self) -> crate::p2p::P2pStatus {
+        self.inner.p2p_status()
+    }
+
+    /// Applies a segment as if a connected peer had sent it. Only for tests and simulations.
+    #[cfg(feature = "test-util")]
+    #[doc(hidden)]
+    pub async fn apply_peer_segment(
+        &self,
+        device: DeviceId,
+        seq: u64,
+        bytes: Vec<u8>,
+    ) -> Result<usize> {
+        engine::apply_pushed(&self.inner, device, seq, bytes).await
     }
 
     /// Uploads a snapshot of the local state now. Returns its key.

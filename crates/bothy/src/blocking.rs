@@ -141,6 +141,12 @@ impl Database {
         self.run(self.db.status())
     }
 
+    /// See [`crate::Database::p2p_status`].
+    #[cfg(feature = "p2p")]
+    pub fn p2p_status(&self) -> crate::p2p::P2pStatus {
+        self.db.p2p_status()
+    }
+
     /// See [`crate::Database::conflicts`].
     pub fn conflicts(&self, since_ms: Option<u64>) -> Result<Vec<Conflict>> {
         self.run(self.db.conflicts(since_ms))
