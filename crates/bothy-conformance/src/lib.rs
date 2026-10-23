@@ -6,6 +6,7 @@
 pub mod check;
 pub mod crypto_vectors;
 pub mod generate;
+pub mod signal_vectors;
 pub mod typed;
 
 use std::path::Path;

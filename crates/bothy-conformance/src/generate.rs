@@ -770,5 +770,6 @@ pub fn all() -> Vec<(String, J)> {
     out.extend(segment_vectors());
     out.extend(snapshot_vectors());
     out.extend(crate::crypto_vectors::all());
+    out.extend(crate::signal_vectors::all());
     out
 }
