@@ -78,22 +78,33 @@ class DatabaseTest(unittest.TestCase):
             a.init_or_join()
             b.init_or_join()
             got = []
+            stream = b.changes(timeout=5)  # subscribed from here on
 
             def watch():
-                for c in b.changes(timeout=5):
+                for c in stream:
                     got.append(c)
                     if c.remote:
                         return
 
             t = threading.Thread(target=watch)
             t.start()
-            time.sleep(0.2)
             a.collection("missions").put("m1", {"goal": "dock"})
             a.sync()
             b.sync()
             t.join(10)
             self.assertTrue(any(c.remote and c.id == "m1" and c.collection == "missions" for c in got), got)
             self.assertEqual(list(b.changes(timeout=0.1)), [])
+
+    def test_changes_subscribe_when_called(self):
+        with self.env.open("a") as a, self.env.open("b") as b:
+            a.init_or_join()
+            b.init_or_join()
+            stream = b.changes(timeout=2)
+            a.collection("missions").put("m2", {"goal": "dock"})
+            a.sync()
+            b.sync()  # before the first next(): still reported
+            got = [(c.collection, c.id, c.remote) for c in stream]
+            self.assertIn(("missions", "m2", True), got)
 
     def test_conflicts(self):
         with self.env.open("a") as a, self.env.open("b") as b:
