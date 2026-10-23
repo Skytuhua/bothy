@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'conflicts.dart';
 import 'editor.dart';
+import 'robot.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key, required this.state});
@@ -78,6 +79,16 @@ class _NotesScreenState extends State<NotesScreen> {
       appBar: AppBar(
         title: const Text('Notes'),
         actions: [
+          IconButton(
+            tooltip: 'Robot',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    RobotScreen(db: state.db!, onSync: state.syncNow),
+              ),
+            ),
+            icon: const Icon(Icons.smart_toy_outlined),
+          ),
           IconButton(
             tooltip: 'Conflicts',
             onPressed: () async {

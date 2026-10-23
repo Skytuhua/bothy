@@ -89,7 +89,7 @@ impl Config {
             #[cfg(feature = "crypto")]
             encrypt: false,
             #[cfg(feature = "crypto")]
-            kdf_cost: (64 * 1024, 3, 1),
+            kdf_cost: crate::crypto::DEFAULT_KDF_COST,
         }
     }
 
@@ -120,7 +120,7 @@ impl Config {
     }
 
     /// Argon2id cost for key files this device writes (memory in KiB, passes, lanes). The
-    /// default is 64 MiB, 3, 1; weak devices and tests may lower it.
+    /// default is [`crate::crypto::DEFAULT_KDF_COST`] (64 MiB, 2, 1); tests may lower it.
     #[cfg(feature = "crypto")]
     pub fn kdf_cost(mut self, m_kib: u32, t: u32, p: u32) -> Self {
         self.kdf_cost = (m_kib, t, p);

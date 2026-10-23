@@ -33,7 +33,7 @@ class AppState extends ChangeNotifier {
   /// A local-folder run gets its own file, so it never mixes with the Drive database.
   static Future<String> databasePath() async =>
       '${(await getApplicationSupportDirectory()).path}/'
-      '${localRemote.isEmpty ? 'notes.db' : 'notes-local.db'}';
+      'notes$storageTag.db';
 
   /// The folder for `BOTHY_LOCAL_REMOTE`; a relative path is inside the app's support
   /// directory (sandboxed macOS apps cannot write elsewhere).
@@ -45,6 +45,8 @@ class AppState extends ChangeNotifier {
   static Future<BothyRemoteSpec> remoteFor(GoogleAuth auth) async =>
       localRemote.isNotEmpty
       ? BothyRemoteSpec.path(await localRemoteDir())
+      : driveFolder.isNotEmpty
+      ? BothyRemoteSpec.googleDriveFolder(driveFolder, auth.token)
       : BothyRemoteSpec.googleDriveAppData(auth.token);
 
   Future<void> start() => _guard(() async {

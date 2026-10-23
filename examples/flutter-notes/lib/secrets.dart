@@ -46,7 +46,7 @@ class SecretStore {
 
   /// A local-folder run keeps its key apart from the Drive database's.
   static String get _keyName =>
-      localRemote.isEmpty ? 'database_key' : 'database_key_local';
+      'database_key${storageTag.replaceAll('-', '_')}';
 
   Future<Uint8List?> readKey() async {
     final s = await read(_keyName);

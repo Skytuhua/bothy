@@ -4,9 +4,24 @@
 /// `bothy join --app-id dev.bothy.notes`.
 const appId = 'dev.bothy.notes';
 
-/// Google Drive's hidden per-app folder. Every OAuth client of the same Cloud project sees
-/// the same folder, so the phone, desktop and CLI share one database.
-const driveScope = 'https://www.googleapis.com/auth/drive.appdata';
+/// A visible Drive folder `Bothy/<name>` instead of the hidden app folder. Needed to share
+/// a database with a headless device (the robot agent), whose device sign-in can only get
+/// `drive.file`.
+const driveFolder = String.fromEnvironment('BOTHY_DRIVE_FOLDER');
+
+/// The Drive scope: the hidden per-app folder by default. Every OAuth client of the same
+/// Cloud project sees the same files, so the phone, desktop and CLI share one database.
+const driveScope = driveFolder == ''
+    ? 'https://www.googleapis.com/auth/drive.appdata'
+    : 'https://www.googleapis.com/auth/drive.file';
+
+/// Separates the local database and key of each remote, so switching remotes never mixes
+/// databases.
+const storageTag = localRemote != ''
+    ? '-local'
+    : driveFolder != ''
+    ? '-folder-$driveFolder'
+    : '';
 
 /// Identifier of the background sync task (Android WorkManager, iOS BGTaskScheduler).
 const syncTaskId = 'dev.bothy.notes.sync';

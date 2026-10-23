@@ -70,6 +70,11 @@ impl DataKey {
     }
 }
 
+/// Default Argon2id cost for new key files: 64 MiB, 2 passes, 1 lane. About 0.75 s on a
+/// Cortex-A53 board (3 passes took 1.09 s there). Key files store their own parameters, so
+/// changing this never affects existing ones.
+pub const DEFAULT_KDF_COST: (u32, u32, u32) = (64 * 1024, 2, 1);
+
 /// Argon2id parameters stored with each key file.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct KdfParams {
@@ -84,10 +89,10 @@ pub struct KdfParams {
 }
 
 impl KdfParams {
-    /// The default cost (64 MiB, 3 passes, 1 lane) with a new random salt. Provisional until
-    /// measured on weak devices.
+    /// The default cost ([`DEFAULT_KDF_COST`]) with a new random salt.
     pub fn new_default() -> Result<Self> {
-        Self::with_cost(64 * 1024, 3, 1)
+        let (m_kib, t, p) = DEFAULT_KDF_COST;
+        Self::with_cost(m_kib, t, p)
     }
 
     /// Custom cost with a new random salt (weak devices, tests).
