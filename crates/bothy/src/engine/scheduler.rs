@@ -37,7 +37,7 @@ impl Default for AutoSync {
             max_delay: Duration::from_secs(10),
             poll_interval: Duration::from_secs(30),
             max_backoff: Duration::from_secs(15 * 60),
-            p2p_debounce: Duration::from_millis(250),
+            p2p_debounce: Duration::from_millis(100),
         }
     }
 }

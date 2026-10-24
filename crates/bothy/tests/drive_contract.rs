@@ -610,3 +610,21 @@ fn blocking_database_talks_to_drive() {
     .unwrap();
     assert_eq!(db.init_or_join().unwrap_err().kind(), ErrorKind::Offline);
 }
+
+/// File ids come in batches: two reservations cost one `files.generateIds` call.
+#[tokio::test]
+async fn reservations_share_one_generate_ids_call() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/drive/v3/files/generateIds"))
+        .and(query_param("count", "20"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"ids": ["ID1", "ID2"]})))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let d = drive(&server, Arc::default(), DriveRoot::AppData);
+    let a = d.reserve("k1").await.unwrap().unwrap();
+    let b = d.reserve("k2").await.unwrap().unwrap();
+    assert_ne!(a, b);
+    assert!(["ID1", "ID2"].contains(&a.as_str()) && ["ID1", "ID2"].contains(&b.as_str()));
+}

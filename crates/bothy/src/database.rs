@@ -369,11 +369,7 @@ impl Inner {
         #[cfg(feature = "p2p")]
         {
             let status = self.p2p_status();
-            let signaling = status
-                .peers
-                .iter()
-                .any(|p| p.state == crate::p2p::PeerState::Signaling);
-            (status.connected() > 0, signaling)
+            (status.connected() > 0, status.discovering)
         }
         #[cfg(not(feature = "p2p"))]
         (false, false)

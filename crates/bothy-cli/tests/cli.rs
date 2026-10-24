@@ -376,3 +376,49 @@ fn encrypted_database_from_init_to_password_change() {
         "unlock always checks a password, even with a remembered key"
     );
 }
+
+#[test]
+fn bench_propagate_over_a_local_channel() {
+    let dir = tempfile::tempdir().unwrap();
+    let remote = format!("path:{}", dir.path().join("remote").display());
+    let m = Machine::new(dir.path(), "m");
+    m.json(&["--db", "a", "init", "--remote", &remote]);
+    m.json(&["--db", "b", "join", "--remote", &remote]);
+    let r = m.json(&[
+        "--db",
+        "a",
+        "bench",
+        "propagate",
+        "--peer",
+        "b",
+        "--count",
+        "3",
+        "--interval-ms",
+        "50",
+        "--p2p",
+        "--no-stun",
+        "--host",
+        "127.0.0.1",
+    ]);
+    assert_eq!(r["arrived"], 3, "{r}");
+    assert!(r["p50_ms"].as_u64().unwrap() < 2000, "{r}");
+    assert!(r["connect_ms"].as_u64().is_some(), "{r}");
+    // --peer must share the remote database.
+    let other = format!("path:{}", dir.path().join("other").display());
+    m.json(&["--db", "c", "init", "--remote", &other]);
+    let (code, _) = m.fails_with(
+        &[
+            "--db",
+            "a",
+            "bench",
+            "propagate",
+            "--peer",
+            "c",
+            "--p2p",
+            "--no-stun",
+        ],
+        &[],
+        None,
+    );
+    assert_eq!(code, 2);
+}

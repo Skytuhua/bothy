@@ -22,7 +22,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   a segment, a device sends it (up to 64 KiB, otherwise an announcement) to its peers, which
   apply it at once. The remote stays the durable record. `Database::p2p_status()`, in the
   blocking API too.
-- `AutoSync::p2p_debounce` (250 ms): the write debounce while a channel is open.
+- `AutoSync::p2p_debounce` (100 ms): the write debounce while a channel is open.
+- `P2pStatus::discovering`: after a device comes online or sees a new peer, background sync
+  polls every 3 s for a minute, so channels open within seconds instead of up to two poll
+  intervals.
+- CLI: `sync --watch --p2p` (with `--stun` or `--no-stun`) prints peer state changes. A hidden
+  `bench propagate` measures how long a write takes to reach another device (`--peer` for a
+  second local database of the same remote database, or `bench echo` on the other device),
+  with `--no-p2p` and `--no-inline` to compare.
 
 ### Changed
 
