@@ -8,46 +8,50 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+## [0.4.0]
+
+A fast path between online devices. On-remote format unchanged (`bothy_format = 1`); the new
+signaling files are optional and 0.3 readers ignore them. The Python and Flutter packages
+have their own changelogs.
+
 ### Added
 
-- Signaling files for the upcoming P2P channel: `KeyKind::Signal` with `SignalKind`
-  (`<db_id>/signaling/<device_id>/{online-<hlc>,offer-<peer>-<hlc>,answer-<peer>-<hlc>}.json`)
-  and `codec::signal` for their documents and lifetimes. Sync ignores them; 0.3 readers
-  already skip the prefix. Conformance vectors in `spec/vectors/signaling.json`.
-
 - Direct channels between online devices (`p2p` feature, on by default but inactive until
-  `Config::p2p(P2pConfig)`): while background sync runs, devices find each other through
-  signaling files and open a WebRTC data channel ([str0m](https://crates.io/crates/str0m),
-  ICE with host and STUN candidates, `stun.l.google.com` by default, no TURN). After uploading
-  a segment, a device sends it (up to 64 KiB, otherwise an announcement) to its peers, which
-  apply it at once. The remote stays the durable record. `Database::p2p_status()`, in the
-  blocking API too.
-- `AutoSync::p2p_debounce` (100 ms): the write debounce while a channel is open.
-- After a failed connection attempt, P2P retries after 15 s, doubling up to 10 minutes and
-  resetting once connected, so peers back from a network outage reconnect within a minute or
-  two.
-- A device whose `online` signaling file could not be written (e.g. offline) retries after
-  15 s instead of at the next 10-minute refresh, so peers can find it soon after an outage.
-- `P2pStatus::discovering`: after a device comes online or sees a new peer, background sync
-  polls every 3 s for a minute, so channels open within seconds instead of up to two poll
-  intervals.
-- CLI: `sync --watch --p2p` (with `--stun` or `--no-stun`) prints peer state changes. A hidden
-  `bench propagate` measures how long a write takes to reach another device (`--peer` for a
-  second local database of the same remote database, or `bench echo` on the other device),
-  with `--no-p2p` and `--no-inline` to compare.
-- `P2pConfig::host_address` is used by the Python (`p2p_host`) and Flutter (`p2pHost`)
-  bindings, which can now turn P2P on; see their changelogs.
+  `Config::p2p(P2pConfig)`). While background sync runs, devices find each other through
+  signaling files on the remote and open a WebRTC data channel
+  ([str0m](https://crates.io/crates/str0m); ICE with host and STUN candidates,
+  `stun.l.google.com` by default, no TURN).
+  - After uploading a segment, a device sends it to its peers (up to 64 KiB, otherwise an
+    announcement), and they apply it at once. The remote stays the durable record: nothing
+    is sent before it is uploaded, and without a channel sync works as before.
+  - Measured p50 from a write to the other device: 1.1 to 1.7 s, against about 30 s by
+    polling.
+  - `Database::p2p_status()` (also in the blocking API) with `P2pStatus::discovering` and
+    per-peer `PeerState`.
+  - `AutoSync::p2p_debounce` (100 ms) is the write debounce while a channel is open.
+    Background sync polls every 3 s while peers are being found.
+  - A failed attempt is retried after 15 s, doubling up to 10 minutes. A device whose
+    `online` file could not be written retries after 15 s.
+- Signaling files: `codec::keys::{KeyKind::Signal, SignalKind}`
+  (`<db_id>/signaling/<device_id>/{online-<hlc>,offer-<peer>-<hlc>,answer-<peer>-<hlc>}.json`)
+  and `codec::signal`. They are sealed in encrypted databases, so SDPs and IP addresses never
+  reach the remote in plain text. Conformance vectors: `spec/vectors/signaling.json`.
+- CLI:
+  - `sync --watch --p2p`, with `--stun` or `--no-stun`, prints peer state changes.
+  - The hidden `bench propagate` (`--peer` for a second local database, or `bench echo` on
+    another device) measures how long a write takes to reach another device.
 
 ### Changed
 
+- Drive: file ids are reserved 20 at a time, so most uploads need one request instead of two.
 - `codec::keys::KeyKind` is `#[non_exhaustive]`.
 - `AutoSync` has a new field; struct literals need `..AutoSync::default()`.
-- The `p2p` feature uses str0m's `aws-lc-rs` crypto backend (it builds `aws-lc-sys`, C).
+- The `p2p` feature builds `aws-lc-sys` (C) for str0m's `aws-lc-rs` crypto backend.
 
 ### Security
 
-- The P2P channel no longer uses `crypto-bigint` 0.5 (RUSTSEC-2026-0387, timing variability)
-  through str0m's RustCrypto backend; str0m now runs on its `aws-lc-rs` backend.
+- No `crypto-bigint` 0.5 (RUSTSEC-2026-0387): P2P uses str0m's `aws-lc-rs` backend rather than
+  its RustCrypto one.
 
 ## [0.3.0]
 
@@ -162,7 +166,8 @@ On-remote format `bothy_format = 1`.
 
 Name reservation: the hybrid logical clock type and the format version constant.
 
-[Unreleased]: https://github.com/bothy-sync/bothy/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/bothy-sync/bothy/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/bothy-sync/bothy/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/bothy-sync/bothy/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bothy-sync/bothy/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/bothy-sync/bothy/compare/v0.0.1...v0.1.0

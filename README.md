@@ -2,7 +2,7 @@
 
 **Serverless, local-first sync engine that uses the user's own cloud storage as the transport.**
 
-> ⚠️ **Early release (0.3).** The API and the on-remote format can still change before 1.0. Keep
+> ⚠️ **Early release (0.4).** The API and the on-remote format can still change before 1.0. Keep
 > a backup of data you care about.
 
 In Scotland and northern England, a *bothy* is an unlocked mountain shelter that belongs to no
@@ -24,6 +24,10 @@ devices drop off and pick up files at a shared place.
   data, and a forgotten password cannot be recovered.
 - **Conflicts you can see.** Edits that lose to a newer edit of the same field are kept in a
   conflict log.
+- **Fast between online devices (optional).** Devices that are online at the same time open a
+  direct WebRTC data channel, found through small files on the remote with no server of
+  their own, so writes arrive within about a second instead of at the next poll. Drive stays
+  the durable record; without a channel, sync works as before.
 - **Open format.** A versioned on-remote format with [conformance vectors](spec/vectors) so other
   languages can interoperate.
 
@@ -109,19 +113,20 @@ bridge. A C ABI is in [`crates/bothy-ffi`](crates/bothy-ffi) (early, not publish
 
 | Registry | Package | Path | Status |
 |---|---|---|---|
-| crates.io | [`bothy`](https://crates.io/crates/bothy) | [`crates/bothy`](crates/bothy) | 0.3: core engine |
-| crates.io | [`bothy-cli`](https://crates.io/crates/bothy-cli) | [`crates/bothy-cli`](crates/bothy-cli) | 0.3: `bothy` command |
-| crates.io | [`bothy-oauth`](https://crates.io/crates/bothy-oauth) | [`crates/bothy-oauth`](crates/bothy-oauth) | 0.3: Google sign-in helpers |
-| pub.dev | [`bothy`](https://pub.dev/packages/bothy) | [`bindings/flutter`](bindings/flutter) | 0.3: Flutter plugin |
-| PyPI | [`bothy`](https://pypi.org/project/bothy/) | [`bindings/python`](bindings/python) | 0.3: Python package |
+| crates.io | [`bothy`](https://crates.io/crates/bothy) | [`crates/bothy`](crates/bothy) | 0.4: core engine |
+| crates.io | [`bothy-cli`](https://crates.io/crates/bothy-cli) | [`crates/bothy-cli`](crates/bothy-cli) | 0.4: `bothy` command |
+| crates.io | [`bothy-oauth`](https://crates.io/crates/bothy-oauth) | [`crates/bothy-oauth`](crates/bothy-oauth) | 0.4: Google sign-in helpers |
+| pub.dev | [`bothy`](https://pub.dev/packages/bothy) | [`bindings/flutter`](bindings/flutter) | 0.4: Flutter plugin |
+| PyPI | [`bothy`](https://pypi.org/project/bothy/) | [`bindings/python`](bindings/python) | 0.4: Python package |
 | npm | [`@bothy-sync/core`](https://www.npmjs.com/package/@bothy-sync/core) | [`bindings/js`](bindings/js) | format types only |
 
 ## Roadmap
 
 - **0.2:** client-side encryption, the conflict log, and the Flutter binding.
-- **0.3 (this release):** the Python binding, an embedded Linux robot agent with a ROS 2
-  bridge, and the start of a C ABI.
-- **0.4:** a faster path between online devices over WebRTC, with Drive as the fallback.
+- **0.3:** the Python binding, an embedded Linux robot agent with a ROS 2 bridge, and the
+  start of a C ABI.
+- **0.4 (this release):** direct channels between online devices over WebRTC, with Drive as
+  the durable record and the fallback.
 
 ## Minimum supported Rust version
 

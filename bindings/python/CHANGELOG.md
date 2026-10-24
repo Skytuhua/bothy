@@ -1,4 +1,6 @@
-## Unreleased
+## 0.4.0
+
+Built on `bothy` 0.4.0.
 
 - `Database.open(..., p2p=True, stun=[...], p2p_host=...)` and `Database.p2p_status()`:
   direct channels to other online devices while `start_auto_sync` runs.
