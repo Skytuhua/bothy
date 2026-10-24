@@ -32,6 +32,17 @@ flutter run --dart-define-from-file=oauth.json --dart-define=BOTHY_DRIVE_FOLDER=
 
 In folder mode the app asks for the `drive.file` scope and keeps a separate local database.
 
+## Direct channels
+
+While the app is open it connects directly to the database's other online devices
+(the CLI with `sync --watch --p2p`, the robot agent with `--p2p`, another copy of the app),
+so their writes show up within about a second; the status line says `direct to 1 device`.
+`--dart-define=BOTHY_P2P=false` turns this off.
+
+To measure it, build with `--dart-define=BOTHY_BENCH=true`. The app then acknowledges
+the writes of `bothy bench propagate` (run on a computer attached to the same database),
+which reports how long each write took to arrive.
+
 ## Try it without Google
 
 This syncs through a local folder instead of Drive. A relative path is resolved inside the

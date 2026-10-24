@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1766222247;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -351329721;
 
 // Section: executor
 
@@ -885,6 +885,54 @@ fn wire__crate__api__bothy__BothyDatabase_open_impl(
         },
     )
 }
+fn wire__crate__api__bothy__BothyDatabase_p2p_status_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BothyDatabase_p2p_status",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BothyDatabase>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let mut api_that_guard = None;
+                let decode_indices_ =
+                    flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                        flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                            &api_that, 0, false,
+                        ),
+                    ]);
+                for i in decode_indices_ {
+                    match i {
+                        0 => api_that_guard = Some(api_that.lockable_decode_sync_ref()),
+                        _ => unreachable!(),
+                    }
+                }
+                let api_that_guard = api_that_guard.unwrap();
+                let output_ok = Ok::<_, ()>(crate::api::bothy::BothyDatabase::p2p_status(
+                    &*api_that_guard,
+                ))?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__bothy__BothyDatabase_patch_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1623,6 +1671,9 @@ impl SseDecode for crate::api::bothy::BothyOptions {
         let mut var_password = <Option<String>>::sse_decode(deserializer);
         let mut var_key = <Option<Vec<u8>>>::sse_decode(deserializer);
         let mut var_conflictLogLimit = <Option<u32>>::sse_decode(deserializer);
+        let mut var_p2P = <bool>::sse_decode(deserializer);
+        let mut var_stunServers = <Option<Vec<String>>>::sse_decode(deserializer);
+        let mut var_p2PHost = <Option<String>>::sse_decode(deserializer);
         return crate::api::bothy::BothyOptions {
             path: var_path,
             app_id: var_appId,
@@ -1631,6 +1682,35 @@ impl SseDecode for crate::api::bothy::BothyOptions {
             password: var_password,
             key: var_key,
             conflict_log_limit: var_conflictLogLimit,
+            p2p: var_p2P,
+            stun_servers: var_stunServers,
+            p2p_host: var_p2PHost,
+        };
+    }
+}
+
+impl SseDecode for crate::api::bothy::BothyP2pStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_running = <bool>::sse_decode(deserializer);
+        let mut var_discovering = <bool>::sse_decode(deserializer);
+        let mut var_peers = <Vec<crate::api::bothy::BothyPeer>>::sse_decode(deserializer);
+        return crate::api::bothy::BothyP2pStatus {
+            running: var_running,
+            discovering: var_discovering,
+            peers: var_peers,
+        };
+    }
+}
+
+impl SseDecode for crate::api::bothy::BothyPeer {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_deviceId = <String>::sse_decode(deserializer);
+        let mut var_state = <String>::sse_decode(deserializer);
+        return crate::api::bothy::BothyPeer {
+            device_id: var_deviceId,
+            state: var_state,
         };
     }
 }
@@ -1773,6 +1853,18 @@ impl SseDecode for Vec<crate::api::bothy::BothyDoc> {
     }
 }
 
+impl SseDecode for Vec<crate::api::bothy::BothyPeer> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::bothy::BothyPeer>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1838,6 +1930,17 @@ impl SseDecode for Option<u32> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<u32>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<Vec<String>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<Vec<String>>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1926,30 +2029,30 @@ fn pde_ffi_dispatcher_primary_impl(
         }
         13 => wire__crate__api__bothy__BothyDatabase_list_impl(port, ptr, rust_vec_len, data_len),
         15 => wire__crate__api__bothy__BothyDatabase_open_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__bothy__BothyDatabase_patch_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__bothy__BothyDatabase_put_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__bothy__BothyDatabase_start_auto_sync_impl(
+        17 => wire__crate__api__bothy__BothyDatabase_patch_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__bothy__BothyDatabase_put_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__bothy__BothyDatabase_start_auto_sync_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        19 => wire__crate__api__bothy__BothyDatabase_status_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__bothy__BothyDatabase_stop_auto_sync_impl(
+        20 => wire__crate__api__bothy__BothyDatabase_status_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__bothy__BothyDatabase_stop_auto_sync_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__bothy__BothyDatabase_sync_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__bothy__BothyDatabase_unlock_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__bothy__BothyDatabase_unlock_with_key_impl(
+        22 => wire__crate__api__bothy__BothyDatabase_sync_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__bothy__BothyDatabase_unlock_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__bothy__BothyDatabase_unlock_with_key_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__bothy__BothyDatabase_watch_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__bothy__BothyDatabase_watch_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1965,6 +2068,7 @@ fn pde_ffi_dispatcher_sync_impl(
         7 => wire__crate__api__bothy__BothyDatabase_device_id_impl(ptr, rust_vec_len, data_len),
         8 => wire__crate__api__bothy__BothyDatabase_export_key_impl(ptr, rust_vec_len, data_len),
         14 => wire__crate__api__bothy__BothyDatabase_lock_impl(ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__bothy__BothyDatabase_p2p_status_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -2116,6 +2220,9 @@ impl flutter_rust_bridge::IntoDart for crate::api::bothy::BothyOptions {
             self.password.into_into_dart().into_dart(),
             self.key.into_into_dart().into_dart(),
             self.conflict_log_limit.into_into_dart().into_dart(),
+            self.p2p.into_into_dart().into_dart(),
+            self.stun_servers.into_into_dart().into_dart(),
+            self.p2p_host.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -2128,6 +2235,46 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::bothy::BothyOptions>
     for crate::api::bothy::BothyOptions
 {
     fn into_into_dart(self) -> crate::api::bothy::BothyOptions {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::bothy::BothyP2pStatus {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.running.into_into_dart().into_dart(),
+            self.discovering.into_into_dart().into_dart(),
+            self.peers.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::bothy::BothyP2pStatus
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::bothy::BothyP2pStatus>
+    for crate::api::bothy::BothyP2pStatus
+{
+    fn into_into_dart(self) -> crate::api::bothy::BothyP2pStatus {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::bothy::BothyPeer {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.device_id.into_into_dart().into_dart(),
+            self.state.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::bothy::BothyPeer {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::bothy::BothyPeer>
+    for crate::api::bothy::BothyPeer
+{
+    fn into_into_dart(self) -> crate::api::bothy::BothyPeer {
         self
     }
 }
@@ -2387,6 +2534,26 @@ impl SseEncode for crate::api::bothy::BothyOptions {
         <Option<String>>::sse_encode(self.password, serializer);
         <Option<Vec<u8>>>::sse_encode(self.key, serializer);
         <Option<u32>>::sse_encode(self.conflict_log_limit, serializer);
+        <bool>::sse_encode(self.p2p, serializer);
+        <Option<Vec<String>>>::sse_encode(self.stun_servers, serializer);
+        <Option<String>>::sse_encode(self.p2p_host, serializer);
+    }
+}
+
+impl SseEncode for crate::api::bothy::BothyP2pStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.running, serializer);
+        <bool>::sse_encode(self.discovering, serializer);
+        <Vec<crate::api::bothy::BothyPeer>>::sse_encode(self.peers, serializer);
+    }
+}
+
+impl SseEncode for crate::api::bothy::BothyPeer {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.device_id, serializer);
+        <String>::sse_encode(self.state, serializer);
     }
 }
 
@@ -2503,6 +2670,16 @@ impl SseEncode for Vec<crate::api::bothy::BothyDoc> {
     }
 }
 
+impl SseEncode for Vec<crate::api::bothy::BothyPeer> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::bothy::BothyPeer>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<u8> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2559,6 +2736,16 @@ impl SseEncode for Option<u32> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <u32>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<Vec<String>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <Vec<String>>::sse_encode(value, serializer);
         }
     }
 }

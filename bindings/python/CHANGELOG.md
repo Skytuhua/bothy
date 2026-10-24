@@ -1,3 +1,10 @@
+## Unreleased
+
+- `Database.open(..., p2p=True, stun=[...], p2p_host=...)` and `Database.p2p_status()`:
+  direct channels to other online devices while `start_auto_sync` runs.
+- `changes()` subscribes when called, so a sync between `changes()` and the first `next()`
+  is no longer missed.
+
 ## 0.3.0
 
 First release with the sync engine: a native module (pyo3, abi3 wheels for CPython 3.9+ on

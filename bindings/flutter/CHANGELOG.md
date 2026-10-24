@@ -1,3 +1,9 @@
+## Unreleased
+
+- `Bothy.open(p2p: true, stunServers: ..., p2pHost: ...)` and `Bothy.p2pStatus()`
+  (`BothyP2pStatus`, `BothyPeer`): direct channels to other online devices while
+  `startAutoSync` runs.
+
 ## 0.3.0
 
 Built on `bothy` 0.3.0.

@@ -106,6 +106,39 @@ class DatabaseTest(unittest.TestCase):
             got = [(c.collection, c.id, c.remote) for c in stream]
             self.assertIn(("missions", "m2", True), got)
 
+    def test_p2p_delivers_writes_quickly(self):
+        kw = dict(p2p=True, stun=[], p2p_host="127.0.0.1")
+        with self.env.open("a", **kw) as a, self.env.open("b", **kw) as b:
+            a.init_or_join()
+            b.init_or_join()
+            self.assertFalse(a.p2p_status()["running"])
+            for db in (a, b):
+                db.start_auto_sync(debounce=0.1, poll_interval=1.0)
+            deadline = time.time() + 60
+            while time.time() < deadline:
+                states = [p["state"] for db in (a, b) for p in db.p2p_status()["peers"]]
+                if states.count("connected") == 2:
+                    break
+                time.sleep(0.2)
+            else:
+                self.fail("no direct channel: %r %r" % (a.p2p_status(), b.p2p_status()))
+            self.assertEqual(a.p2p_status()["peers"][0]["device_id"], b.device_id)
+            stream = b.changes(timeout=5)
+            start = time.time()
+            a.collection("missions").put("m9", {"goal": "dock"})
+            got = next(c for c in stream if c.id == "m9")
+            self.assertTrue(got.remote)
+            self.assertLess(time.time() - start, 2.0)
+            a.stop_auto_sync()
+            self.assertFalse(a.p2p_status()["running"])
+            b.stop_auto_sync()
+
+    def test_p2p_options_need_p2p(self):
+        with self.assertRaises(bothy.InvalidInputError):
+            self.env.open("a", stun=[])
+        with self.assertRaises(bothy.InvalidInputError):
+            self.env.open("b", p2p=True, p2p_host="not an ip")
+
     def test_conflicts(self):
         with self.env.open("a") as a, self.env.open("b") as b:
             a.init_or_join()

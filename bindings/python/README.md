@@ -79,6 +79,19 @@ A complete example, a robot agent that takes missions from the Flutter demo and 
 telemetry (with an optional ROS 2 bridge), is in
 [`examples/pi-agent`](https://github.com/bothy-sync/bothy/tree/main/examples/pi-agent).
 
+## Direct channels (P2P)
+
+```python
+db = bothy.Database.open(..., p2p=True)   # stun=[] keeps it on the local network
+db.start_auto_sync()
+print(db.p2p_status())   # {'running': True, 'discovering': False, 'peers': [{'device_id': ..., 'state': 'connected'}]}
+```
+
+- **What it does:** while background sync runs, devices of the same database that are online at the same time open a direct WebRTC data channel. Writes then arrive within about a second instead of at the next poll.
+- **Durability:** Drive stays the durable record. Segments go over the channel only after they are uploaded, and losing the channel just means waiting for the next poll.
+- **Finding each other:** peers find each other through small files on the remote; that usually takes 10–30 seconds after both are up.
+- **Outside the local network:** a STUN server (Google's public one by default) tells each device its public address. There is no relay, so a strict NAT falls back to polling.
+
 ## Errors
 
 Every engine error is a `bothy.BothyError`. Each error kind has its own subclass, for

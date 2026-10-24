@@ -113,6 +113,12 @@ pub struct BothyOptions {
     pub key: Option<Vec<u8>>,
     /// Conflict records to keep; `None` turns the conflict log off.
     pub conflict_log_limit: Option<u32>,
+    /// Direct channels to other online devices while background sync runs.
+    pub p2p: bool,
+    /// STUN servers (`host:port`); `None` for the default, empty for the local network only.
+    pub stun_servers: Option<Vec<String>>,
+    /// Local address to offer to peers instead of the detected one (e.g. `127.0.0.1` in tests).
+    pub p2p_host: Option<String>,
 }
 
 /// Kinds of remote.
@@ -216,6 +222,22 @@ pub struct BothyStatus {
     pub locked: bool,
 }
 
+/// Direct channel to one peer.
+pub struct BothyPeer {
+    pub device_id: String,
+    /// `signaling`, `connected`, `failed` or `disconnected`.
+    pub state: String,
+}
+
+/// Direct channels to other devices.
+pub struct BothyP2pStatus {
+    /// P2P is on and background sync runs.
+    pub running: bool,
+    /// Looking for peers or waiting for an answer.
+    pub discovering: bool,
+    pub peers: Vec<BothyPeer>,
+}
+
 /// A write from another device that lost to a newer write.
 pub struct BothyConflict {
     pub collection: String,
@@ -272,10 +294,23 @@ impl BothyDatabase {
                 Arc::new(DriveRemote::folder(tokens(), &location()?)?)
             }
         };
-        let mut config = Config::new(&options.path, &options.app_id)
-            .conflict_log(options.conflict_log_limit);
+        let mut config =
+            Config::new(&options.path, &options.app_id).conflict_log(options.conflict_log_limit);
         if let Some(name) = &options.device_name {
             config = config.device_name(name);
+        }
+        if options.p2p {
+            let mut p = bothy::p2p::P2pConfig::new();
+            if let Some(servers) = options.stun_servers.clone() {
+                p = p.stun_servers(servers);
+            }
+            if let Some(host) = &options.p2p_host {
+                let ip = host
+                    .parse()
+                    .map_err(|_| invalid(format!("p2pHost is not an IP address: {host}")))?;
+                p = p.host_address(ip);
+            }
+            config = config.p2p(p);
         }
         match (&options.password, &options.key) {
             (Some(p), _) if options.encrypt => config = config.encrypt(p),
@@ -303,7 +338,9 @@ impl BothyDatabase {
     /// The remote database id, if attached.
     pub async fn db_id(&self) -> Result<Option<String>, BothyException> {
         let db = self.db.clone();
-        Ok(run(async move { db.db_id().await }).await?.map(|d| d.to_hex()))
+        Ok(run(async move { db.db_id().await })
+            .await?
+            .map(|d| d.to_hex()))
     }
 
     /// This device's id.
@@ -386,7 +423,11 @@ impl BothyDatabase {
     }
 
     /// The document as JSON, or `None`.
-    pub async fn get(&self, collection: String, id: String) -> Result<Option<String>, BothyException> {
+    pub async fn get(
+        &self,
+        collection: String,
+        id: String,
+    ) -> Result<Option<String>, BothyException> {
         let c = self.db.collection(&collection)?;
         let doc = run(async move { c.get(&id).await }).await?;
         Ok(doc.map(|v| v.to_json().to_string()))
@@ -513,6 +554,31 @@ impl BothyDatabase {
     }
 
     /// Local counters and the lock state.
+    /// Direct channels to other devices (empty unless P2P is on and background sync runs).
+    #[frb(sync)]
+    pub fn p2p_status(&self) -> BothyP2pStatus {
+        let st = self.db.p2p_status();
+        BothyP2pStatus {
+            running: st.running,
+            discovering: st.discovering,
+            peers: st
+                .peers
+                .iter()
+                .map(|p| BothyPeer {
+                    device_id: p.device_id.to_hex(),
+                    state: match p.state {
+                        bothy::p2p::PeerState::Signaling => "signaling",
+                        bothy::p2p::PeerState::Connected => "connected",
+                        bothy::p2p::PeerState::Failed => "failed",
+                        bothy::p2p::PeerState::Disconnected => "disconnected",
+                        _ => "unknown",
+                    }
+                    .to_owned(),
+                })
+                .collect(),
+        }
+    }
+
     pub async fn status(&self) -> Result<BothyStatus, BothyException> {
         let db = self.db.clone();
         run(async move {
@@ -531,7 +597,10 @@ impl BothyDatabase {
     }
 
     /// Conflicts across the database, newest first; with `since_ms`, only newer ones.
-    pub async fn conflicts(&self, since_ms: Option<i64>) -> Result<Vec<BothyConflict>, BothyException> {
+    pub async fn conflicts(
+        &self,
+        since_ms: Option<i64>,
+    ) -> Result<Vec<BothyConflict>, BothyException> {
         let db = self.db.clone();
         let since = since_ms.map(|s| s.max(0) as u64);
         let rows = run(async move { db.conflicts(since).await }).await?;

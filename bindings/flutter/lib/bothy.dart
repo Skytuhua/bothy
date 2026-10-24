@@ -13,6 +13,8 @@ export 'src/rust/api/bothy.dart'
         BothyConflict,
         BothyErrorKind,
         BothyException,
+        BothyP2pStatus,
+        BothyPeer,
         BothyStatus,
         BothySyncEvent,
         BothySyncReport;

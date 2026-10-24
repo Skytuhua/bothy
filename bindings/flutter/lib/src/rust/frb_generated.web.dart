@@ -87,6 +87,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BothyOptions dco_decode_bothy_options(dynamic raw);
 
   @protected
+  BothyP2pStatus dco_decode_bothy_p_2_p_status(dynamic raw);
+
+  @protected
+  BothyPeer dco_decode_bothy_peer(dynamic raw);
+
+  @protected
   BothyRemote dco_decode_bothy_remote(dynamic raw);
 
   @protected
@@ -138,6 +144,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BothyDoc> dco_decode_list_bothy_doc(dynamic raw);
 
   @protected
+  List<BothyPeer> dco_decode_list_bothy_peer(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
 
   @protected
@@ -157,6 +166,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+  @protected
+  List<String>? dco_decode_opt_list_String(dynamic raw);
 
   @protected
   Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
@@ -232,6 +244,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BothyOptions sse_decode_bothy_options(SseDeserializer deserializer);
 
   @protected
+  BothyP2pStatus sse_decode_bothy_p_2_p_status(SseDeserializer deserializer);
+
+  @protected
+  BothyPeer sse_decode_bothy_peer(SseDeserializer deserializer);
+
+  @protected
   BothyRemote sse_decode_bothy_remote(SseDeserializer deserializer);
 
   @protected
@@ -291,6 +309,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BothyDoc> sse_decode_list_bothy_doc(SseDeserializer deserializer);
 
   @protected
+  List<BothyPeer> sse_decode_list_bothy_peer(SseDeserializer deserializer);
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
   @protected
@@ -314,6 +335,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+  @protected
+  List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
 
   @protected
   Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -409,6 +433,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bothy_options(BothyOptions self, SseSerializer serializer);
 
   @protected
+  void sse_encode_bothy_p_2_p_status(
+    BothyP2pStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bothy_peer(BothyPeer self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bothy_remote(BothyRemote self, SseSerializer serializer);
 
   @protected
@@ -487,6 +520,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_bothy_doc(List<BothyDoc> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_bothy_peer(
+    List<BothyPeer> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
 
   @protected
@@ -518,6 +557,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_list_prim_u_8_strict(

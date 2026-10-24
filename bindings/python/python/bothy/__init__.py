@@ -188,6 +188,9 @@ class Database:
         key: Optional[bytes] = None,
         device_name: Optional[str] = None,
         conflict_log_limit: Optional[int] = 1000,
+        p2p: bool = False,
+        stun: Optional[List[str]] = None,
+        p2p_host: Optional[str] = None,
     ) -> "Database":
         """Opens (or creates) the local database at ``path``.
 
@@ -196,6 +199,12 @@ class Database:
         them an encrypted database opens locked: local reads and writes work, :meth:`sync`
         raises :class:`KeyRequiredError` until :meth:`unlock`. ``conflict_log_limit=None``
         turns the conflict log off.
+
+        With ``p2p=True``, while :meth:`start_auto_sync` runs, the device opens direct channels
+        to other online devices of the database, so their writes arrive within about a second.
+        ``stun`` lists STUN servers (``host:port``) for peers outside the local network; the
+        default is Google's public server, and ``[]`` keeps P2P on the local network.
+        ``p2p_host`` is the local address to offer to peers instead of the detected one.
         """
         return cls(
             _native.Database.open(
@@ -207,6 +216,9 @@ class Database:
                 key=None if key is None else bytes(key),
                 device_name=device_name,
                 conflict_log_limit=conflict_log_limit,
+                p2p=p2p,
+                stun=None if stun is None else list(stun),
+                p2p_host=p2p_host,
             )
         )
 
@@ -264,6 +276,11 @@ class Database:
 
     def stop_auto_sync(self) -> None:
         self._native.stop_auto_sync()
+
+    def p2p_status(self) -> Dict[str, Any]:
+        """Direct channels: ``running``, ``discovering`` and ``peers`` (each a ``device_id``
+        and a ``state``: ``signaling``, ``connected``, ``failed`` or ``disconnected``)."""
+        return self._native.p2p_status()
 
     def status(self) -> Dict[str, Any]:
         """Local counters and the lock state."""
