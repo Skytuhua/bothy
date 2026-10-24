@@ -426,7 +426,8 @@ fn report(py: Python<'_>, r: &bothy::SyncReport) -> PyResult<Py<PyAny>> {
 impl Database {
     #[staticmethod]
     #[pyo3(signature = (path, app_id, remote, *, encrypt = false, password = None, key = None,
-                        device_name = None, conflict_log_limit = Some(1000)))]
+                        device_name = None, conflict_log_limit = Some(1000), p2p = false,
+                        stun = None, p2p_host = None))]
     #[allow(clippy::too_many_arguments)]
     fn open(
         py: Python<'_>,
@@ -438,8 +439,26 @@ impl Database {
         key: Option<Vec<u8>>,
         device_name: Option<String>,
         conflict_log_limit: Option<u32>,
+        p2p: bool,
+        stun: Option<Vec<String>>,
+        p2p_host: Option<String>,
     ) -> PyResult<Self> {
         let mut config = Config::new(path, app_id).conflict_log(conflict_log_limit);
+        if p2p {
+            let mut p = bothy::p2p::P2pConfig::new();
+            if let Some(servers) = stun {
+                p = p.stun_servers(servers);
+            }
+            if let Some(host) = p2p_host {
+                let ip = host
+                    .parse()
+                    .map_err(|_| invalid(format!("p2p_host is not an IP address: {host}")))?;
+                p = p.host_address(ip);
+            }
+            config = config.p2p(p);
+        } else if stun.is_some() || p2p_host.is_some() {
+            return Err(invalid("stun and p2p_host need p2p=True"));
+        }
         if let Some(n) = &device_name {
             config = config.device_name(n);
         }
@@ -603,6 +622,29 @@ impl Database {
         if let Some(h) = self.auto_sync.take() {
             py.detach(|| h.stop());
         }
+    }
+
+    fn p2p_status(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let st = self.db()?.p2p_status();
+        let d = pyo3::types::PyDict::new(py);
+        d.set_item("running", st.running)?;
+        d.set_item("discovering", st.discovering)?;
+        let peers = pyo3::types::PyList::empty(py);
+        for p in &st.peers {
+            let e = pyo3::types::PyDict::new(py);
+            e.set_item("device_id", p.device_id.to_hex())?;
+            let state = match p.state {
+                bothy::p2p::PeerState::Signaling => "signaling",
+                bothy::p2p::PeerState::Connected => "connected",
+                bothy::p2p::PeerState::Failed => "failed",
+                bothy::p2p::PeerState::Disconnected => "disconnected",
+                _ => "unknown",
+            };
+            e.set_item("state", state)?;
+            peers.append(e)?;
+        }
+        d.set_item("peers", peers)?;
+        Ok(d.into_any().unbind())
     }
 
     fn status(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {

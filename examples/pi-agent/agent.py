@@ -110,6 +110,7 @@ class Agent:
             self.path("agent.db"), APP_ID, self.remote(),
             encrypt=password is not None, password=password, key=key,
             device_name=self.args.name or platform.node() or "robot",
+            p2p=getattr(self.args, "p2p", False),
         )
         if self.db.db_id() is None:
             if self.args.offline:
@@ -247,6 +248,9 @@ def main(argv=None):
             s.add_argument("--once", action="store_true", help="one round, then exit")
             s.add_argument("--ros2", action="store_true",
                            help="bridge missions and telemetry to ROS 2 topics")
+            s.add_argument("--p2p", action="store_true",
+                           help="direct channel to the phone while both are online (missions "
+                                "arrive within about a second)")
     args = p.parse_args(argv)
     if args.cmd == "login":
         cmd_login(args)

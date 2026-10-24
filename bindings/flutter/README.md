@@ -59,6 +59,16 @@ throws `BothyException` with `BothyErrorKind.wrongPassword`; an encrypted databa
 without a secret is locked: local reads and writes work, `sync` throws
 `BothyErrorKind.keyRequired` until `unlock`. `changePassword` changes it on every device.
 
+### Direct channels (P2P)
+
+`Bothy.open(..., p2p: true)` opens direct WebRTC data channels to other online devices
+of the database while `startAutoSync()` runs, so their writes arrive within about a
+second. Drive stays the durable record; without a channel, sync works as before.
+`db.p2pStatus()` shows the peers. `stunServers: const []` keeps it on the local network
+(the default asks Google's public STUN server for the device's public address).
+On iOS, add `NSLocalNetworkUsageDescription` to `Info.plist`; on macOS, the app needs the
+`com.apple.security.network.server` entitlement.
+
 ### Conflicts
 
 Writes that lose to a newer write from another device are kept in a log:

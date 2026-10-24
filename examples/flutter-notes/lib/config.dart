@@ -23,6 +23,14 @@ const storageTag = localRemote != ''
     ? '-folder-$driveFolder'
     : '';
 
+/// Direct channels to other online devices while the app is open, so their writes show up
+/// within about a second. `--dart-define=BOTHY_P2P=false` turns them off.
+const p2p = bool.fromEnvironment('BOTHY_P2P', defaultValue: true);
+
+/// Acknowledges the writes of `bothy bench propagate` (collection `bench`), to measure how
+/// long a write takes to get here. Only for measurements.
+const benchEcho = bool.fromEnvironment('BOTHY_BENCH');
+
 /// Identifier of the background sync task (Android WorkManager, iOS BGTaskScheduler).
 const syncTaskId = 'dev.bothy.notes.sync';
 

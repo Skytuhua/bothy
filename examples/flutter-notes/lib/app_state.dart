@@ -30,6 +30,11 @@ class AppState extends ChangeNotifier {
   bool syncing = false;
   StreamSubscription<BothySyncEvent>? _autoSync;
 
+  /// Direct channels, for the status line.
+  BothyP2pStatus? p2pStatus;
+  Timer? _p2pTimer;
+  StreamSubscription<BothyChange>? _bench;
+
   /// A local-folder run gets its own file, so it never mixes with the Drive database.
   static Future<String> databasePath() async =>
       '${(await getApplicationSupportDirectory()).path}/'
@@ -79,6 +84,7 @@ class AppState extends ChangeNotifier {
       encrypt: encrypt,
       password: password,
       key: key,
+      p2p: p2p,
     );
     this.db = db;
     if (await db.dbId() == null) {
@@ -142,11 +148,48 @@ class AppState extends ChangeNotifier {
       lastSync = e;
       notifyListeners();
     });
+    _p2pTimer?.cancel();
+    if (p2p) {
+      _p2pTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        final now = db?.p2pStatus();
+        if (_p2pKey(now) != _p2pKey(p2pStatus)) {
+          p2pStatus = now;
+          notifyListeners();
+        }
+      });
+    }
+    if (benchEcho) _startBenchEcho();
     // A first sync right away, so a newly opened app shows fresh notes.
     unawaited(syncNow());
   }
 
+  static String _p2pKey(BothyP2pStatus? s) => s == null
+      ? ''
+      : '${s.running} ${s.discovering} '
+            '${s.peers.map((p) => '${p.deviceId}=${p.state}').join(',')}';
+
+  /// Answers `bothy bench propagate`: for each `p…` write from another device, writes `a…`
+  /// with the time it arrived here.
+  void _startBenchEcho() {
+    _bench?.cancel();
+    final bench = db!.collection('bench');
+    _bench = bench.watch().listen((c) async {
+      if (!c.remote || !c.id.startsWith('p')) return;
+      final recv = DateTime.now().millisecondsSinceEpoch;
+      final doc = await bench.get(c.id);
+      if (doc == null) return;
+      await bench.put('a${c.id.substring(1)}', {
+        'sent_ms': doc['sent_ms'],
+        'recv_ms': recv,
+      });
+    });
+  }
+
   Future<void> _close() async {
+    _p2pTimer?.cancel();
+    _p2pTimer = null;
+    await _bench?.cancel();
+    _bench = null;
     await _autoSync?.cancel();
     _autoSync = null;
     final db = this.db;

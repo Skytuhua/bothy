@@ -171,4 +171,57 @@ void main() {
       }
     }
   });
+  test('peers send writes over a direct channel', () async {
+    Future<Bothy> peer(String name) => Bothy.open(
+      path: '${dir.path}/$name.db',
+      appId: appId,
+      remote: remote,
+      deviceName: name,
+      p2p: true,
+      stunServers: const [],
+      p2pHost: '127.0.0.1',
+    );
+    final a = await peer('a');
+    final b = await peer('b');
+    await a.initOrJoin();
+    await b.initOrJoin();
+    expect(a.p2pStatus().running, isFalse);
+    final subs = [
+      a.startAutoSync().listen((_) {}),
+      b.startAutoSync().listen((_) {}),
+    ];
+    bool up(Bothy d) => d.p2pStatus().peers.any((p) => p.state == 'connected');
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
+    while (!(up(a) && up(b))) {
+      if (DateTime.now().isAfter(deadline)) fail('no direct channel');
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    expect(a.p2pStatus().peers.single.deviceId, b.deviceId);
+    final arrived = b.watch().firstWhere((c) => c.id == 'm1' && c.remote);
+    final clock = Stopwatch()..start();
+    await a.collection('missions').put('m1', {'goal': 'dock'});
+    await arrived.timeout(const Duration(seconds: 10));
+    expect(clock.elapsed, lessThan(const Duration(seconds: 2)));
+    await a.stopAutoSync();
+    expect(a.p2pStatus().running, isFalse);
+    await b.stopAutoSync();
+    for (final s in subs) {
+      await s.cancel();
+    }
+    await a.close();
+    await b.close();
+  });
+
+  test('p2pHost must be an IP address', () async {
+    await expectLater(
+      Bothy.open(
+        path: '${dir.path}/x.db',
+        appId: appId,
+        remote: remote,
+        p2p: true,
+        p2pHost: 'not an ip',
+      ),
+      throwsA(isA<BothyException>()),
+    );
+  });
 }

@@ -38,6 +38,9 @@ You need Python ≥ 3.9 and the `bothy` package (`pip install bothy`, or unpack 
    BOTHY_PASSWORD='the notes password' python3 agent.py run --folder robot
    ```
 
+   Add `--p2p` to connect directly to the phone while both are online, so missions arrive
+   within about a second instead of at the next poll.
+
    It keeps the database's data key in `~/.local/share/bothy-agent/key` (mode `0600`). Later
    runs need no password, and syncing then needs no Argon2 memory.
 

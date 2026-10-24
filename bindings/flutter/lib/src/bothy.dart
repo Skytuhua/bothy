@@ -97,6 +97,13 @@ class Bothy {
   ///
   /// [conflictLogLimit] is how many lost writes are kept for [conflicts]; `null` turns the
   /// log off.
+  ///
+  /// With [p2p], while [startAutoSync] runs, the device opens direct channels to other
+  /// online devices of the database, so their writes arrive within about a second.
+  /// [stunServers] (`host:port`) help peers outside the local network: `null` uses Google's
+  /// public server, an empty list keeps P2P on the local network. [p2pHost] is the local
+  /// address to offer to peers instead of the detected one. On iOS, add
+  /// `NSLocalNetworkUsageDescription` to `Info.plist`.
   static Future<Bothy> open({
     required String path,
     required String appId,
@@ -106,6 +113,9 @@ class Bothy {
     String? password,
     Uint8List? key,
     int? conflictLogLimit = 1000,
+    bool p2p = false,
+    List<String>? stunServers,
+    String? p2pHost,
   }) async {
     final db = await BothyDatabase.open(
       options: BothyOptions(
@@ -116,6 +126,9 @@ class Bothy {
         password: password,
         key: key,
         conflictLogLimit: conflictLogLimit,
+        p2P: p2p,
+        stunServers: stunServers,
+        p2PHost: p2pHost,
       ),
       remote: BothyRemote(kind: remote._kind, location: remote._location),
       getToken: remote._token,
@@ -160,6 +173,9 @@ class Bothy {
 
   /// Local counters and the lock state.
   Future<BothyStatus> status() => _db.status();
+
+  /// Direct channels to other devices.
+  BothyP2pStatus p2pStatus() => _db.p2PStatus();
 
   /// Writes from other devices that lost to a newer write, newest first.
   Future<List<BothyConflict>> conflicts({DateTime? since}) =>

@@ -69,7 +69,16 @@ class _NotesScreenState extends State<NotesScreen> {
     if (e.error != null) return 'Sync failed: ${e.error!.message}';
     final r = e.report!;
     final t = TimeOfDay.now().format(context);
-    return 'Synced at $t · ${r.pushedOps} sent, ${r.pulledOps} received';
+    return 'Synced at $t · ${r.pushedOps} sent, ${r.pulledOps} received${_p2p()}';
+  }
+
+  /// Direct channels: how many peers are connected, or that the app is looking for them.
+  String _p2p() {
+    final p = widget.state.p2pStatus;
+    if (p == null || !p.running) return '';
+    final n = p.peers.where((x) => x.state == 'connected').length;
+    if (n > 0) return ' · direct to $n device${n == 1 ? '' : 's'}';
+    return p.discovering ? ' · looking for devices' : '';
   }
 
   @override

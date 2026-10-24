@@ -30,6 +30,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   `bench propagate` measures how long a write takes to reach another device (`--peer` for a
   second local database of the same remote database, or `bench echo` on the other device),
   with `--no-p2p` and `--no-inline` to compare.
+- `P2pConfig::host_address` is used by the Python (`p2p_host`) and Flutter (`p2pHost`)
+  bindings, which can now turn P2P on; see their changelogs.
 
 ### Changed
 

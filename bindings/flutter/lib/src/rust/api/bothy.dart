@@ -68,6 +68,10 @@ abstract class BothyDatabase implements RustOpaqueInterface {
     getToken: getToken,
   );
 
+  /// Local counters and the lock state.
+  /// Direct channels to other devices (empty unless P2P is on and background sync runs).
+  BothyP2pStatus p2PStatus();
+
   /// Sets the given fields and removes `unset`.
   Future<bool> patch({
     required String collection,
@@ -87,7 +91,6 @@ abstract class BothyDatabase implements RustOpaqueInterface {
   /// `stop_auto_sync`. Each outcome goes to `sink`.
   Stream<BothySyncEvent> startAutoSync();
 
-  /// Local counters and the lock state.
   Future<BothyStatus> status();
 
   /// Stops background sync.
@@ -257,6 +260,15 @@ class BothyOptions {
   /// Conflict records to keep; `None` turns the conflict log off.
   final int? conflictLogLimit;
 
+  /// Direct channels to other online devices while background sync runs.
+  final bool p2P;
+
+  /// STUN servers (`host:port`); `None` for the default, empty for the local network only.
+  final List<String>? stunServers;
+
+  /// Local address to offer to peers instead of the detected one (e.g. `127.0.0.1` in tests).
+  final String? p2PHost;
+
   const BothyOptions({
     required this.path,
     required this.appId,
@@ -265,6 +277,9 @@ class BothyOptions {
     this.password,
     this.key,
     this.conflictLogLimit,
+    required this.p2P,
+    this.stunServers,
+    this.p2PHost,
   });
 
   @override
@@ -275,7 +290,10 @@ class BothyOptions {
       encrypt.hashCode ^
       password.hashCode ^
       key.hashCode ^
-      conflictLogLimit.hashCode;
+      conflictLogLimit.hashCode ^
+      p2P.hashCode ^
+      stunServers.hashCode ^
+      p2PHost.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -288,7 +306,59 @@ class BothyOptions {
           encrypt == other.encrypt &&
           password == other.password &&
           key == other.key &&
-          conflictLogLimit == other.conflictLogLimit;
+          conflictLogLimit == other.conflictLogLimit &&
+          p2P == other.p2P &&
+          stunServers == other.stunServers &&
+          p2PHost == other.p2PHost;
+}
+
+/// Direct channels to other devices.
+class BothyP2pStatus {
+  /// P2P is on and background sync runs.
+  final bool running;
+
+  /// Looking for peers or waiting for an answer.
+  final bool discovering;
+  final List<BothyPeer> peers;
+
+  const BothyP2pStatus({
+    required this.running,
+    required this.discovering,
+    required this.peers,
+  });
+
+  @override
+  int get hashCode => running.hashCode ^ discovering.hashCode ^ peers.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BothyP2pStatus &&
+          runtimeType == other.runtimeType &&
+          running == other.running &&
+          discovering == other.discovering &&
+          peers == other.peers;
+}
+
+/// Direct channel to one peer.
+class BothyPeer {
+  final String deviceId;
+
+  /// `signaling`, `connected`, `failed` or `disconnected`.
+  final String state;
+
+  const BothyPeer({required this.deviceId, required this.state});
+
+  @override
+  int get hashCode => deviceId.hashCode ^ state.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BothyPeer &&
+          runtimeType == other.runtimeType &&
+          deviceId == other.deviceId &&
+          state == other.state;
 }
 
 /// Where the shared files live.

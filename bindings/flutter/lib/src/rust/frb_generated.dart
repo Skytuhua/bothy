@@ -64,7 +64,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1766222247;
+  int get rustContentHash => -351329721;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -136,6 +136,10 @@ abstract class RustLibApi extends BaseApi {
     required BothyOptions options,
     required BothyRemote remote,
     required FutureOr<String> Function(bool) getToken,
+  });
+
+  BothyP2pStatus crateApiBothyBothyDatabaseP2PStatus({
+    required BothyDatabase that,
   });
 
   Future<bool> crateApiBothyBothyDatabasePatch({
@@ -735,6 +739,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  BothyP2pStatus crateApiBothyBothyDatabaseP2PStatus({
+    required BothyDatabase that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBothyDatabase(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bothy_p_2_p_status,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBothyBothyDatabaseP2PStatusConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBothyBothyDatabaseP2PStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: "BothyDatabase_p2p_status",
+        argNames: ["that"],
+      );
+
+  @override
   Future<bool> crateApiBothyBothyDatabasePatch({
     required BothyDatabase that,
     required String collection,
@@ -757,7 +792,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 17,
             port: port_,
           );
         },
@@ -799,7 +834,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 18,
             port: port_,
           );
         },
@@ -838,7 +873,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 18,
+              funcId: 19,
               port: port_,
             );
           },
@@ -876,7 +911,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 20,
             port: port_,
           );
         },
@@ -912,7 +947,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 21,
             port: port_,
           );
         },
@@ -948,7 +983,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 22,
             port: port_,
           );
         },
@@ -983,7 +1018,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1021,7 +1056,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1060,7 +1095,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 24,
+              funcId: 25,
               port: port_,
             );
           },
@@ -1264,8 +1299,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BothyOptions dco_decode_bothy_options(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return BothyOptions(
       path: dco_decode_String(arr[0]),
       appId: dco_decode_String(arr[1]),
@@ -1274,6 +1309,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       password: dco_decode_opt_String(arr[4]),
       key: dco_decode_opt_list_prim_u_8_strict(arr[5]),
       conflictLogLimit: dco_decode_opt_box_autoadd_u_32(arr[6]),
+      p2P: dco_decode_bool(arr[7]),
+      stunServers: dco_decode_opt_list_String(arr[8]),
+      p2PHost: dco_decode_opt_String(arr[9]),
+    );
+  }
+
+  @protected
+  BothyP2pStatus dco_decode_bothy_p_2_p_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BothyP2pStatus(
+      running: dco_decode_bool(arr[0]),
+      discovering: dco_decode_bool(arr[1]),
+      peers: dco_decode_list_bothy_peer(arr[2]),
+    );
+  }
+
+  @protected
+  BothyPeer dco_decode_bothy_peer(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BothyPeer(
+      deviceId: dco_decode_String(arr[0]),
+      state: dco_decode_String(arr[1]),
     );
   }
 
@@ -1414,6 +1477,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BothyPeer> dco_decode_list_bothy_peer(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bothy_peer).toList();
+  }
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as List<int>;
@@ -1453,6 +1522,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_32(raw);
+  }
+
+  @protected
+  List<String>? dco_decode_opt_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_list_String(raw);
   }
 
   @protected
@@ -1631,6 +1706,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_password = sse_decode_opt_String(deserializer);
     var var_key = sse_decode_opt_list_prim_u_8_strict(deserializer);
     var var_conflictLogLimit = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_p2P = sse_decode_bool(deserializer);
+    var var_stunServers = sse_decode_opt_list_String(deserializer);
+    var var_p2PHost = sse_decode_opt_String(deserializer);
     return BothyOptions(
       path: var_path,
       appId: var_appId,
@@ -1639,7 +1717,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       password: var_password,
       key: var_key,
       conflictLogLimit: var_conflictLogLimit,
+      p2P: var_p2P,
+      stunServers: var_stunServers,
+      p2PHost: var_p2PHost,
     );
+  }
+
+  @protected
+  BothyP2pStatus sse_decode_bothy_p_2_p_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_running = sse_decode_bool(deserializer);
+    var var_discovering = sse_decode_bool(deserializer);
+    var var_peers = sse_decode_list_bothy_peer(deserializer);
+    return BothyP2pStatus(
+      running: var_running,
+      discovering: var_discovering,
+      peers: var_peers,
+    );
+  }
+
+  @protected
+  BothyPeer sse_decode_bothy_peer(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_state = sse_decode_String(deserializer);
+    return BothyPeer(deviceId: var_deviceId, state: var_state);
   }
 
   @protected
@@ -1808,6 +1910,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BothyPeer> sse_decode_list_bothy_peer(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BothyPeer>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bothy_peer(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -1875,6 +1989,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_u_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  List<String>? sse_decode_opt_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_list_String(deserializer));
     } else {
       return null;
     }
@@ -2091,6 +2216,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.password, serializer);
     sse_encode_opt_list_prim_u_8_strict(self.key, serializer);
     sse_encode_opt_box_autoadd_u_32(self.conflictLogLimit, serializer);
+    sse_encode_bool(self.p2P, serializer);
+    sse_encode_opt_list_String(self.stunServers, serializer);
+    sse_encode_opt_String(self.p2PHost, serializer);
+  }
+
+  @protected
+  void sse_encode_bothy_p_2_p_status(
+    BothyP2pStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.running, serializer);
+    sse_encode_bool(self.discovering, serializer);
+    sse_encode_list_bothy_peer(self.peers, serializer);
+  }
+
+  @protected
+  void sse_encode_bothy_peer(BothyPeer self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_String(self.state, serializer);
   }
 
   @protected
@@ -2249,6 +2395,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_bothy_peer(
+    List<BothyPeer> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bothy_peer(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_u_8_loose(
     List<int> self,
     SseSerializer serializer,
@@ -2326,6 +2484,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_u_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_list_String(
+    List<String>? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_list_String(self, serializer);
     }
   }
 
@@ -2462,6 +2633,11 @@ class BothyDatabaseImpl extends RustOpaque implements BothyDatabase {
   void lock() =>
       RustLib.instance.api.crateApiBothyBothyDatabaseLock(that: this);
 
+  /// Local counters and the lock state.
+  /// Direct channels to other devices (empty unless P2P is on and background sync runs).
+  BothyP2pStatus p2PStatus() =>
+      RustLib.instance.api.crateApiBothyBothyDatabaseP2PStatus(that: this);
+
   /// Sets the given fields and removes `unset`.
   Future<bool> patch({
     required String collection,
@@ -2493,7 +2669,6 @@ class BothyDatabaseImpl extends RustOpaque implements BothyDatabase {
   Stream<BothySyncEvent> startAutoSync() =>
       RustLib.instance.api.crateApiBothyBothyDatabaseStartAutoSync(that: this);
 
-  /// Local counters and the lock state.
   Future<BothyStatus> status() =>
       RustLib.instance.api.crateApiBothyBothyDatabaseStatus(that: this);
 
