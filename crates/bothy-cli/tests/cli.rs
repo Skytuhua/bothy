@@ -422,3 +422,33 @@ fn bench_propagate_over_a_local_channel() {
     );
     assert_eq!(code, 2);
 }
+
+/// `sync --watch` stops on Ctrl-C even while it wakes up every second for P2P status.
+#[cfg(unix)]
+#[test]
+fn sync_watch_stops_on_sigint() {
+    let (_dir, a, _b, _) = setup();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_bothy"))
+        .args(["sync", "--watch", "--p2p", "--no-stun"])
+        .env("BOTHY_HOME", &a.home)
+        .env("BOTHY_TOKEN_STORE", "file")
+        .env_remove("BOTHY_DB")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    for _ in 0..3 {
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        let _ = Command::new("kill")
+            .args(["-INT", &child.id().to_string()])
+            .status();
+        for _ in 0..50 {
+            if child.try_wait().unwrap().is_some() {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+    }
+    let _ = child.kill();
+    panic!("sync --watch did not stop on SIGINT");
+}

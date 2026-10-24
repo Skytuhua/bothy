@@ -26,8 +26,11 @@ use crate::remote::RemoteEntry;
 
 /// How long a pending offer or answer may take to connect before the peer is marked failed.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(45);
-/// Wait before connecting again to a peer that failed.
+/// Wait before connecting again to a peer that sent a wrong `Hello` (another database).
 const FAILED_BACKOFF: Duration = Duration::from_secs(10 * 60);
+/// First wait after a connection attempt failed; it doubles with each failure in a row up to
+/// [`FAILED_BACKOFF`], so a peer back from a network outage reconnects within a minute or two.
+const RETRY_BACKOFF: Duration = Duration::from_secs(15);
 /// Wait before re-offering to a peer whose channel closed.
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 /// How long the first STUN round may take before the first `online` file is written.
@@ -91,6 +94,8 @@ struct Driver {
     db_id: Option<DbId>,
     me: DeviceId,
     peers: HashMap<DeviceId, Peer>,
+    /// Failed attempts in a row per peer, for the retry backoff.
+    failures: HashMap<DeviceId, u32>,
     online: HashMap<DeviceId, Online>,
     /// Signaling files already handled (or being fetched).
     seen: HashSet<String>,
@@ -99,6 +104,13 @@ struct Driver {
     discover_until: Instant,
     incoming_tx: mpsc::UnboundedSender<Incoming>,
     status: watch::Sender<P2pStatus>,
+}
+
+/// Wait after the `n`th failed attempt in a row (n ≥ 1).
+fn retry_backoff(n: u32) -> Duration {
+    RETRY_BACKOFF
+        .saturating_mul(1 << n.saturating_sub(1).min(16))
+        .min(FAILED_BACKOFF)
 }
 
 fn random_u64() -> u64 {
@@ -148,6 +160,7 @@ pub(super) async fn run(
         session: random_u64(),
         db_id: None,
         peers: HashMap::new(),
+        failures: HashMap::new(),
         online: HashMap::new(),
         seen: HashSet::new(),
         our_online: None,
@@ -536,7 +549,9 @@ impl Driver {
         };
         if rtc.sdp_api().accept_answer(pending, answer).is_err() {
             p.state = PeerState::Failed;
-            p.retry_at = Some(Instant::now() + FAILED_BACKOFF);
+            let n = self.failures.entry(from).or_default();
+            *n += 1;
+            p.retry_at = Some(Instant::now() + retry_backoff(*n));
         }
     }
 
@@ -659,6 +674,7 @@ impl Driver {
                     {
                         p.hello_ok = true;
                         p.state = PeerState::Connected;
+                        self.failures.remove(&dev);
                         if let Some(f) = p.our_file.take() {
                             self.delete(f);
                         }
@@ -728,7 +744,9 @@ impl Driver {
                 }
                 p.rtc = None;
                 p.state = PeerState::Failed;
-                p.retry_at = Some(now + FAILED_BACKOFF);
+                let n = self.failures.entry(*dev).or_default();
+                *n += 1;
+                p.retry_at = Some(now + retry_backoff(*n));
             }
             if p.rtc.as_ref().is_some_and(|r| !r.is_alive()) && p.state == PeerState::Connected {
                 p.rtc = None;
@@ -877,4 +895,18 @@ fn open(data_key: Option<&crate::codec::DataKey>, key: &str, bytes: Vec<u8>) -> 
     #[cfg(not(feature = "crypto"))]
     let _ = (data_key, key);
     Ok(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn retries_back_off_from_seconds_to_ten_minutes() {
+        assert_eq!(retry_backoff(1), Duration::from_secs(15));
+        assert_eq!(retry_backoff(2), Duration::from_secs(30));
+        assert_eq!(retry_backoff(4), Duration::from_secs(120));
+        assert_eq!(retry_backoff(7), FAILED_BACKOFF);
+        assert_eq!(retry_backoff(u32::MAX), FAILED_BACKOFF);
+    }
 }

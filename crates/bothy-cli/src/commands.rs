@@ -809,9 +809,12 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
             eprintln!("syncing in the background; press Ctrl-C to stop");
             let mut peers = db.p2p_status().peers;
             let mut tick = tokio::time::interval(std::time::Duration::from_secs(1));
+            // One listener for the whole loop: a new one per turn misses a signal that
+            // arrives between turns.
+            let mut ctrl_c = std::pin::pin!(tokio::signal::ctrl_c());
             loop {
                 tokio::select! {
-                    _ = tokio::signal::ctrl_c() => break,
+                    _ = &mut ctrl_c => break,
                     _ = tick.tick(), if p2p.p2p => {
                         let now = db.p2p_status().peers;
                         for p in &now {
@@ -1209,9 +1212,10 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
             let mut events = db.subscribe();
             let bench = db.collection(BENCH)?;
             eprintln!("acknowledging bench writes; press Ctrl-C to stop");
+            let mut ctrl_c = std::pin::pin!(tokio::signal::ctrl_c());
             loop {
                 tokio::select! {
-                    _ = tokio::signal::ctrl_c() => break,
+                    _ = &mut ctrl_c => break,
                     Ok(e) = events.recv() => {
                         let id = e.doc_id.as_str().to_owned();
                         if e.origin != Origin::Remote || e.collection.as_str() != BENCH || !id.starts_with('p') {

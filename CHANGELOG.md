@@ -23,6 +23,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
   apply it at once. The remote stays the durable record. `Database::p2p_status()`, in the
   blocking API too.
 - `AutoSync::p2p_debounce` (100 ms): the write debounce while a channel is open.
+- After a failed connection attempt, P2P retries after 15 s, doubling up to 10 minutes and
+  resetting once connected, so peers back from a network outage reconnect within a minute or
+  two.
 - `P2pStatus::discovering`: after a device comes online or sees a new peer, background sync
   polls every 3 s for a minute, so channels open within seconds instead of up to two poll
   intervals.
