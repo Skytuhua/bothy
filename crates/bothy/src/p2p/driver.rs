@@ -144,7 +144,7 @@ pub(super) async fn run(
         local: SocketAddr::new(host, port),
         srflx: None,
         stun_pending: Vec::new(),
-        crypto: Arc::new(str0m_rust_crypto::default_provider()),
+        crypto: Arc::new(str0m_aws_lc_rs::default_provider()),
         session: random_u64(),
         db_id: None,
         peers: HashMap::new(),

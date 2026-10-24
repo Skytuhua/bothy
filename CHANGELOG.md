@@ -37,7 +37,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 - `codec::keys::KeyKind` is `#[non_exhaustive]`.
 - `AutoSync` has a new field; struct literals need `..AutoSync::default()`.
-- The `p2p` feature builds `aws-lc-sys` (C) through str0m's DTLS stack.
+- The `p2p` feature uses str0m's `aws-lc-rs` crypto backend (it builds `aws-lc-sys`, C).
+
+### Security
+
+- The P2P channel no longer uses `crypto-bigint` 0.5 (RUSTSEC-2026-0387, timing variability)
+  through str0m's RustCrypto backend; str0m now runs on its `aws-lc-rs` backend.
 
 ## [0.3.0]
 

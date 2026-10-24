@@ -1,4 +1,5 @@
-//! Direct channel between online devices (WebRTC data channel, [`str0m`]).
+//! Direct channel between online devices (WebRTC data channel, [`str0m`] on its `aws-lc-rs`
+//! crypto backend).
 //!
 //! The channel only speeds things up. After a device uploads a segment, it tells its connected
 //! peers, and sends the segment's bytes when they are small, so peers see writes within about a
