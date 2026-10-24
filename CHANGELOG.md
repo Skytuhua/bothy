@@ -26,6 +26,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 - After a failed connection attempt, P2P retries after 15 s, doubling up to 10 minutes and
   resetting once connected, so peers back from a network outage reconnect within a minute or
   two.
+- A device whose `online` signaling file could not be written (e.g. offline) retries after
+  15 s instead of at the next 10-minute refresh, so peers can find it soon after an outage.
 - `P2pStatus::discovering`: after a device comes online or sees a new peer, background sync
   polls every 3 s for a minute, so channels open within seconds instead of up to two poll
   intervals.

@@ -79,6 +79,8 @@ enum Incoming {
     },
     /// A file we wrote (online, offer or answer) is up.
     Written(String),
+    /// Writing our `online` file failed (e.g. offline): try again soon, not at the next refresh.
+    OnlineFailed,
 }
 
 struct Driver {
@@ -292,7 +294,11 @@ impl Driver {
         let tx = self.incoming_tx.clone();
         tokio::spawn(async move {
             // An encrypted database that is locked writes nothing: SDPs carry IP addresses.
+            // `online` is retried soon, so peers find us shortly after an unlock.
             let Ok(data_key) = crate::engine::sync_key(&inner).await else {
+                if kind == SignalKind::Online {
+                    let _ = tx.send(Incoming::OnlineFailed);
+                }
                 return;
             };
             let Ok(hlc) = inner.store(|s| s.tick()).await else {
@@ -313,6 +319,8 @@ impl Driver {
             };
             if inner.remote.put_new(&name, &body, None).await.is_ok() {
                 let _ = tx.send(Incoming::Written(name));
+            } else if kind == SignalKind::Online {
+                let _ = tx.send(Incoming::OnlineFailed);
             }
         });
     }
@@ -387,6 +395,10 @@ impl Driver {
 
     fn on_incoming(&mut self, inc: Incoming) {
         match inc {
+            Incoming::OnlineFailed => {
+                // Peers cannot see us until it is up; the old one may have expired meanwhile.
+                self.next_online = self.next_online.min(Instant::now() + RETRY_BACKOFF);
+            }
             Incoming::Written(name) => {
                 self.seen.insert(name.clone());
                 if name.contains("/online-")
