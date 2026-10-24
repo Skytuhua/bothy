@@ -25,7 +25,7 @@ drive = ["dep:reqwest", "dep:rustls", "dep:sha2", "dep:webpki-roots"]
 crypto = ["dep:argon2", "dep:chacha20poly1305", "dep:zeroize"]
 # Direct channels between online devices (WebRTC data channel via str0m), off until
 # `Config::p2p` turns them on.
-p2p = ["dep:str0m", "dep:str0m-rust-crypto", "tokio/net"]
+p2p = ["dep:str0m", "dep:str0m-aws-lc-rs", "tokio/net"]
 
 [dependencies]
 argon2 = { version = "0.6", optional = true }
@@ -40,8 +40,8 @@ rusqlite = { version = "0.40", features = ["bundled"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
 serde_json = "1"
 sha2 = { version = "0.11", optional = true }
-str0m = { version = "0.24.1", default-features = false, features = ["rust-crypto"], optional = true }
-str0m-rust-crypto = { version = "0.6", optional = true }
+str0m = { version = "0.24.1", default-features = false, features = ["aws-lc-rs"], optional = true }
+str0m-aws-lc-rs = { version = "0.6", optional = true }
 tokio = { version = "1.54", features = ["macros", "rt", "sync", "time"] }
 zeroize = { version = "1.9", optional = true }
 zstd = "0.14"
