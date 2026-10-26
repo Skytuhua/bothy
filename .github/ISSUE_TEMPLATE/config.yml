@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://bothysync.dev
+    about: Guides and concepts; many questions are answered there.
+  - name: Security vulnerability
+    url: https://github.com/bothy-sync/bothy/security/advisories/new
+    about: Report security issues privately, not as a public issue.

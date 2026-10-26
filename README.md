@@ -133,6 +133,12 @@ bridge. A C ABI is in [`crates/bothy-ffi`](crates/bothy-ffi) (early, not publish
 The Rust crates build with Rust **1.88** or newer. Raising the MSRV is not a breaking change
 before 1.0, but it is always noted in the [changelog](CHANGELOG.md).
 
+## Documentation and contributing
+
+Guides and concepts are at **[bothysync.dev](https://bothysync.dev)**. Contributions are
+welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) and the
+[good first issues](https://github.com/bothy-sync/bothy/labels/good%20first%20issue).
+
 ## Security
 
 See [SECURITY.md](SECURITY.md) for how to report a vulnerability.
