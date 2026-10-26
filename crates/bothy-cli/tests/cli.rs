@@ -487,3 +487,67 @@ fn bench_reverse_times_writes_from_the_other_machine() {
     assert_eq!(r["arrived"], 3, "{r}");
     assert!(r["p50_ms"].as_u64().unwrap() < 5000, "{r}");
 }
+
+#[test]
+fn setup_google_checks_and_stores_the_client() {
+    let dir = tempfile::tempdir().unwrap();
+    let m = Machine::new(dir.path(), "m");
+    let id = "123-abc.apps.googleusercontent.com";
+    let desktop = dir.path().join("desktop.json");
+    std::fs::write(
+        &desktop,
+        format!(r#"{{"installed":{{"client_id":"{id}","client_secret":"s","project_id":"my-sync-1","redirect_uris":["http://localhost"]}}}}"#),
+    )
+    .unwrap();
+    let web = dir.path().join("web.json");
+    std::fs::write(
+        &web,
+        format!(r#"{{"web":{{"client_id":"{id}","client_secret":"s","project_id":"my-sync-1"}}}}"#),
+    )
+    .unwrap();
+    let args = |project: &str, file: &std::path::Path| {
+        vec![
+            "setup".to_owned(),
+            "google".into(),
+            "--project".into(),
+            project.into(),
+            "--client".into(),
+            file.display().to_string(),
+            "--no-browser".into(),
+            "--no-login".into(),
+        ]
+    };
+    let ok: Vec<String> = args("my-sync-1", &desktop);
+    let r = m.json(&ok.iter().map(String::as_str).collect::<Vec<_>>());
+    assert_eq!(r["client_id"], id, "{r}");
+    assert!(m.ok(&["auth", "status"]).contains(id) || m.home.join("config").exists());
+
+    let wrong_kind = args("my-sync-1", &web);
+    let (code, err) = m.fails_with(
+        &wrong_kind.iter().map(String::as_str).collect::<Vec<_>>(),
+        &[],
+        None,
+    );
+    assert_eq!(code, 2);
+    assert!(
+        err.contains("Web application") && err.contains("Desktop app"),
+        "{err}"
+    );
+
+    let other_project = args("other-proj", &desktop);
+    let (code, err) = m.fails_with(
+        &other_project.iter().map(String::as_str).collect::<Vec<_>>(),
+        &[],
+        None,
+    );
+    assert_eq!(code, 2);
+    assert!(err.contains("my-sync-1"), "{err}");
+
+    let bad_id = args("Bad_Id", &desktop);
+    let (code, _) = m.fails_with(
+        &bad_id.iter().map(String::as_str).collect::<Vec<_>>(),
+        &[],
+        None,
+    );
+    assert_eq!(code, 2);
+}

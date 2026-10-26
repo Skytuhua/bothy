@@ -322,6 +322,12 @@ impl DriveRemote {
                                 "the access token lacks the Drive scope for this root",
                             ));
                         }
+                        "accessNotConfigured" => {
+                            return Err(Error::new(
+                                ErrorKind::Internal,
+                                "the Google Drive API is not enabled in the Cloud project of this OAuth client (accessNotConfigured); enable it in the Cloud console under APIs & Services",
+                            ));
+                        }
                         other => {
                             return Err(Error::new(
                                 ErrorKind::Internal,

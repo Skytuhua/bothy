@@ -628,3 +628,19 @@ async fn reservations_share_one_generate_ids_call() {
     assert_ne!(a, b);
     assert!(["ID1", "ID2"].contains(&a.as_str()) && ["ID1", "ID2"].contains(&b.as_str()));
 }
+
+/// A project without the Drive API enabled gets an error that says what to do.
+#[tokio::test]
+async fn drive_api_not_enabled_says_so() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(403).set_body_json(
+            json!({"error": {"code": 403, "errors": [{"reason": "accessNotConfigured"}]}}),
+        ))
+        .mount(&server)
+        .await;
+    let d = drive(&server, Arc::default(), DriveRoot::AppData);
+    let e = d.reserve("k").await.unwrap_err();
+    assert!(e.message().contains("not enabled"), "{e}");
+    assert!(e.message().contains("accessNotConfigured"), "{e}");
+}

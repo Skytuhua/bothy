@@ -8,6 +8,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Ver
 
 ## [Unreleased]
 
+### Added
+
+- CLI: `bothy setup google`, a guided setup of the Google Cloud project and OAuth clients.
+  It opens each console page for the project, checks downloaded client files (Desktop, TV,
+  Web or mobile, and the project), signs in, and confirms that Drive answers. With
+  `--project`, `--client`, `--device-client`, `--no-browser` and `--no-login` it runs
+  without prompts.
+
+### Changed
+
+- Drive: a project without the Drive API enabled now fails with an error that says so
+  (`accessNotConfigured`), instead of a generic refusal.
+
 ## [0.4.0]
 
 A fast path between online devices. On-remote format unchanged (`bothy_format = 1`); the new

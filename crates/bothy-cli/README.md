@@ -14,6 +14,17 @@ Bothy has no server and no OAuth app of its own yet, so you use a client of **yo
 Cloud project**. All devices of one database must use clients from the **same project**:
 Google Drive only shows a project the files that project's clients created.
 
+The quickest way is the guided setup. It opens each Cloud console page for your project and
+checks the downloaded client files. It then signs in and confirms that Drive answers:
+
+```sh
+bothy setup google
+# on other machines, with the same project and client file:
+bothy setup google --project my-notes-sync --client client_secret_desktop.json
+```
+
+The steps it walks through, if you prefer to do them by hand:
+
 1. Go to <https://console.cloud.google.com/>, create a project, and enable the **Google Drive
    API** (APIs & Services → Library).
 2. **OAuth consent screen** (Google Auth Platform): user type *External*, fill in the app name
