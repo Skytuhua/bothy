@@ -56,6 +56,7 @@ export default defineConfig({
             { label: 'File format', slug: 'reference/format' },
             { label: 'FAQ', slug: 'reference/faq' },
             { label: 'Release notes', slug: 'reference/releases' },
+            { label: 'Privacy policy', slug: 'privacy' },
           ],
         },
       ],

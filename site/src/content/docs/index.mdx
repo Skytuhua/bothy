@@ -1,0 +1,45 @@
+---
+title: Bothy
+description: Serverless, local-first sync over the user's own Google Drive.
+template: splash
+hero:
+  tagline: Sync your app's data between phones, computers and robots, with no server. The data stays in your users' own Google Drive, works offline, and can be end-to-end encrypted.
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Start in 15 minutes
+      link: /start/quick-start/
+      icon: right-arrow
+    - text: What is Bothy?
+      link: /start/introduction/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="No server" icon="rocket">
+    Devices exchange files through the user's own Google Drive. There is nothing for you
+    to host, scale or pay for, and no account system to build.
+  </Card>
+  <Card title="Local first" icon="laptop">
+    Every device keeps a SQLite database and works offline. Edits made on different
+    devices merge when they meet again, field by field.
+  </Card>
+  <Card title="End-to-end encrypted" icon="shield">
+    With a password, everything on Drive is encrypted (XChaCha20-Poly1305, Argon2id).
+    Google sees file names and sizes, never the data.
+  </Card>
+  <Card title="Fast when online" icon="approve-check">
+    Devices that are online together open a direct WebRTC channel: writes arrive in
+    about a second instead of at the next poll.
+  </Card>
+  <Card title="Rust, Flutter, Python, C" icon="puzzle">
+    One Rust engine with bindings for Flutter (Android, iOS, macOS, Linux, Windows),
+    Python and C, plus a command-line tool.
+  </Card>
+  <Card title="Open format" icon="document">
+    A versioned, documented on-remote format with conformance vectors, so other
+    languages can read and write the same data.
+  </Card>
+</CardGrid>
