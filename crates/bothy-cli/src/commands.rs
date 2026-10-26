@@ -406,6 +406,57 @@ async fn bench_remote(a: &Database, p2p: bool, o: &BenchOpts) -> CliResult<J> {
     Ok(out)
 }
 
+/// Asks a device running `bench echo` (or the demo app's bench mode) for `count` writes and
+/// times how long each takes to arrive here: `now - sent_ms`, so both clocks must agree.
+async fn bench_reverse(a: &Database, p2p: bool, o: &BenchOpts) -> CliResult<J> {
+    let ha = a.start_auto_sync(AutoSync::default());
+    let started = std::time::Instant::now();
+    let connect_ms = if p2p {
+        if !wait_connected(a, std::time::Duration::from_secs(180)).await {
+            ha.stop().await;
+            return Err(CliError::usage(
+                "no direct channel within 3 minutes; is `bench echo` running?",
+            ));
+        }
+        Some(started.elapsed().as_millis() as u64)
+    } else {
+        None
+    };
+    let bench = a.collection(BENCH)?;
+    let run = now_ms();
+    let prefix = format!("q{run}-");
+    let mut events = a.subscribe();
+    let interval_ms = o.interval.as_millis() as u64;
+    bench
+        .put(
+            &format!("s{run}"),
+            json!({"count": o.count, "interval_ms": interval_ms}),
+        )
+        .await?;
+    let mut got: std::collections::BTreeMap<String, u64> = std::collections::BTreeMap::new();
+    let deadline = tokio::time::Instant::now() + o.timeout + o.interval * o.count;
+    while got.len() < o.count as usize {
+        let next = tokio::time::timeout_at(deadline, events.recv()).await;
+        let e = match next {
+            Ok(Ok(e)) => e,
+            Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
+            _ => break,
+        };
+        let id = e.doc_id.as_str();
+        if e.origin != Origin::Remote || !id.starts_with(&prefix) || got.contains_key(id) {
+            continue;
+        }
+        let arrived = now_ms();
+        if let Some(doc) = bench.get(id).await?
+            && let Some(sent) = doc.to_json()["sent_ms"].as_u64()
+        {
+            got.insert(id.to_owned(), arrived.saturating_sub(sent));
+        }
+    }
+    ha.stop().await;
+    Ok(summary(got.into_values().collect(), o.count, connect_ms))
+}
+
 async fn open(ctx: &Ctx) -> CliResult<Database> {
     let config = CliConfig::load(&ctx.paths)?;
     let entry = entry(ctx, &config)?;
@@ -1158,6 +1209,7 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
             timeout,
             no_inline,
             no_p2p,
+            reverse,
             p2p,
         }) => {
             let p2p = P2p {
@@ -1188,6 +1240,7 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
                     }
                     bench_pair(&a, &b, p2p.p2p, &opts).await?
                 }
+                None if reverse => bench_reverse(&a, p2p.p2p, &opts).await?,
                 None => bench_remote(&a, p2p.p2p, &opts).await?,
             };
             ctx.out(result.clone(), || {
@@ -1218,7 +1271,26 @@ pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
                     _ = &mut ctrl_c => break,
                     Ok(e) = events.recv() => {
                         let id = e.doc_id.as_str().to_owned();
-                        if e.origin != Origin::Remote || e.collection.as_str() != BENCH || !id.starts_with('p') {
+                        if e.origin != Origin::Remote || e.collection.as_str() != BENCH {
+                            continue;
+                        }
+                        if let Some(run) = id.strip_prefix('s') {
+                            // `bench propagate --reverse` asks for writes from here.
+                            if let Some(doc) = bench.get(&id).await? {
+                                let d = doc.to_json();
+                                let count = d["count"].as_u64().unwrap_or(0).min(10_000);
+                                let pause = d["interval_ms"].as_u64().unwrap_or(1000);
+                                let (bench, run) = (bench.clone(), run.to_owned());
+                                tokio::spawn(async move {
+                                    for i in 0..count {
+                                        let _ = bench.put(&format!("q{run}-{i:04}"), json!({"sent_ms": now_ms()})).await;
+                                        tokio::time::sleep(std::time::Duration::from_millis(pause)).await;
+                                    }
+                                });
+                            }
+                            continue;
+                        }
+                        if !id.starts_with('p') {
                             continue;
                         }
                         let ack = format!("a{}", &id[1..]);

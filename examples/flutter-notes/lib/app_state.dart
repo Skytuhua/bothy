@@ -174,7 +174,24 @@ class AppState extends ChangeNotifier {
     _bench?.cancel();
     final bench = db!.collection('bench');
     _bench = bench.watch().listen((c) async {
-      if (!c.remote || !c.id.startsWith('p')) return;
+      if (!c.remote) return;
+      if (c.id.startsWith('s')) {
+        // `bench propagate --reverse` asks for timed writes from this device.
+        final run = c.id.substring(1);
+        final doc = await bench.get(c.id);
+        final count = ((doc?['count'] as num?) ?? 0).toInt().clamp(0, 10000);
+        final pause = Duration(
+          milliseconds: ((doc?['interval_ms'] as num?) ?? 1000).toInt(),
+        );
+        for (var i = 0; i < count; i++) {
+          await bench.put('q$run-${i.toString().padLeft(4, '0')}', {
+            'sent_ms': DateTime.now().millisecondsSinceEpoch,
+          });
+          await Future<void>.delayed(pause);
+        }
+        return;
+      }
+      if (!c.id.startsWith('p')) return;
       final recv = DateTime.now().millisecondsSinceEpoch;
       final doc = await bench.get(c.id);
       if (doc == null) return;
