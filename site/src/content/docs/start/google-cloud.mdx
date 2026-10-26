@@ -1,0 +1,73 @@
+---
+title: Set up Google sign-in
+description: Create the Google Cloud project and OAuth clients Bothy signs in with.
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+Bothy has no server, so it signs in to Google Drive with an OAuth client of **your own Google
+Cloud project**. You do this once; it takes about ten minutes and costs nothing.
+
+<Aside type="caution" title="One project per database">
+Google Drive shows a project only the files that **that project's** clients created. Every
+device of one database, whether the CLI, your Flutter app or a robot, must use clients of the
+**same** Cloud project.
+</Aside>
+
+<Steps>
+
+1. **Create a project.** Open the [Google Cloud console](https://console.cloud.google.com/projectcreate),
+   name it (for example `my-notes-sync`) and create it.
+
+2. **Enable the Google Drive API.** In the project, open
+   [APIs & Services → Library → Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com)
+   and click **Enable**.
+
+3. **Configure the consent screen.** Open **Google Auth Platform** (the OAuth consent screen):
+   - user type **External**;
+   - app name and your email;
+   - under **Audience → Test users**, add the Google accounts that will sign in.
+
+4. **Add the scopes.** Under **Data access**, add:
+   - `https://www.googleapis.com/auth/drive.appdata`: the hidden per-app folder;
+   - `https://www.googleapis.com/auth/drive.file`: a visible `Bothy/<name>` folder, needed for
+     headless devices.
+
+   Both are non-sensitive, so Google does not review them.
+
+5. **Create the clients.** Under **Clients → Create client**, create what you need and download
+   each JSON file:
+
+   | Client type | Used by | Settings |
+   |---|---|---|
+   | Desktop app | CLI, macOS, Linux and Windows apps | none |
+   | TVs and Limited Input devices | headless boards (device code sign-in) | none |
+   | Android | Android apps | package name and the SHA-1 of the signing key |
+   | Web application | Android apps (as the "server client id") | no redirect URIs |
+   | iOS | iOS apps | bundle id |
+
+6. **Hand the clients to Bothy.** For the CLI:
+
+   ```sh
+   bothy auth setup --client ~/Downloads/client_secret_desktop.json
+   bothy auth setup --device-client ~/Downloads/client_secret_tv.json   # optional
+   bothy auth login
+   ```
+
+   For apps, see the [Flutter guide](/guides/flutter/) and the [Python guide](/guides/python/).
+
+</Steps>
+
+## Things that go wrong
+
+- **"Access blocked" or "not a test user":** add the account under **Audience → Test users**.
+- **`accessNotConfigured` or "Google Drive API has not been used in project…":** the Drive API
+  is not enabled for the project of this client (step 2).
+- **Signed out after a week:** while the consent screen is in **Testing**, Google expires
+  sign-ins after 7 days. Sign in again, or publish the app (**In production**). An unverified
+  app shows a warning screen at sign-in, which is fine for your own project.
+- **The other device sees nothing:** check that both use clients of the same project, and that
+  both chose the same [remote](/concepts/remotes/) (`appdata` or the same `folder:<name>`).
+- **A headless board cannot join:** Google refuses the `drive.appdata` scope in the device code
+  flow, so headless devices can only use **folder** databases. Create the database with
+  `--remote folder:<name>` if a board will ever join it.

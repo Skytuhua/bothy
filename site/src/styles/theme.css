@@ -1,0 +1,11 @@
+/* Moss green accents: a bothy is a shelter in the hills. */
+:root {
+  --sl-color-accent-low: #0f2e27;
+  --sl-color-accent: #2f8f75;
+  --sl-color-accent-high: #bfe6da;
+}
+:root[data-theme='light'] {
+  --sl-color-accent-low: #d3efe6;
+  --sl-color-accent: #1f6f5c;
+  --sl-color-accent-high: #0f3a30;
+}

@@ -1,0 +1,155 @@
+---
+title: Start in 15 minutes
+description: Sync two devices, first through a folder, then through Google Drive.
+---
+
+import { Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components';
+
+This page gets two devices in sync. The first part needs no Google account: two databases
+sync through a shared folder, which is how you develop and test. The second part switches
+to Google Drive.
+
+## 1. Try it without Google
+
+<Tabs syncKey="lang">
+<TabItem label="CLI">
+
+```sh
+cargo install bothy-cli
+
+# Two local databases ("a" and "b") that sync through a folder.
+bothy --db a init --remote path:/tmp/bothy-shared
+bothy --db b join --remote path:/tmp/bothy-shared
+
+bothy --db a put notes n1 '{"title": "Hello", "done": false}'
+bothy --db a sync
+bothy --db b sync
+bothy --db b get notes n1        # {"done":false,"title":"Hello"}
+```
+
+</TabItem>
+<TabItem label="Python">
+
+```sh
+pip install bothy
+```
+
+```python
+import bothy
+
+remote = bothy.FolderRemote("/tmp/bothy-shared")
+a = bothy.Database.open("a.db", app_id="com.example.notes", remote=remote)
+b = bothy.Database.open("b.db", app_id="com.example.notes", remote=remote)
+a.init_or_join()
+b.init_or_join()
+
+a.collection("notes").put("n1", {"title": "Hello", "done": False})
+a.sync()
+b.sync()
+print(b.collection("notes").get("n1"))   # {'done': False, 'title': 'Hello'}
+```
+
+</TabItem>
+<TabItem label="Flutter">
+
+```yaml
+# pubspec.yaml; building needs a Rust toolchain (https://rustup.rs)
+dependencies:
+  bothy: ^0.4.0
+```
+
+```dart
+import 'package:bothy/bothy.dart';
+
+await Bothy.initialize();
+final remote = BothyRemoteSpec.path('${dir.path}/shared');
+final a = await Bothy.open(path: '${dir.path}/a.db', appId: 'com.example.notes', remote: remote);
+final b = await Bothy.open(path: '${dir.path}/b.db', appId: 'com.example.notes', remote: remote);
+await a.initOrJoin();
+await b.initOrJoin();
+
+await a.collection('notes').put('n1', {'title': 'Hello', 'done': false});
+await a.sync();
+await b.sync();
+print(await b.collection('notes').get('n1'));
+```
+
+</TabItem>
+<TabItem label="Rust">
+
+```toml
+[dependencies]
+bothy = "0.4"
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+```rust
+use std::sync::Arc;
+use bothy::{Config, Database, remote::FolderRemote};
+use serde_json::json;
+
+#[tokio::main]
+async fn main() -> bothy::Result<()> {
+    let remote = Arc::new(FolderRemote::new("/tmp/bothy-shared")?);
+    let a = Database::open(Config::new("a.db", "com.example.notes"), remote.clone()).await?;
+    let b = Database::open(Config::new("b.db", "com.example.notes"), remote).await?;
+    a.init_or_join().await?;
+    b.init_or_join().await?;
+
+    a.collection("notes")?.put("n1", json!({"title": "Hello", "done": false})).await?;
+    a.sync().await?;
+    b.sync().await?;
+    println!("{:?}", b.collection("notes")?.get("n1").await?);
+    Ok(())
+}
+```
+
+</TabItem>
+</Tabs>
+
+Edit the same note on both sides before syncing, one field each, and both edits survive. Edit
+the same field and the later one wins; the other is kept in the conflict log.
+
+## 2. Sync through Google Drive
+
+<Aside type="note">
+Bothy signs in with an OAuth client of **your own Google Cloud project**. Creating one takes
+about ten minutes, once: see [Set up Google sign-in](/start/google-cloud/). All devices of a
+database must use clients of the same project.
+</Aside>
+
+<Steps>
+
+1. Create the Google Cloud project and download a **Desktop app** client
+   ([guide](/start/google-cloud/)).
+
+2. Sign in and create an encrypted database on the first computer:
+
+   ```sh
+   bothy auth setup --client ~/Downloads/client_secret_desktop.json
+   bothy auth login                     # opens the browser
+   bothy init --encrypt --remember      # asks for a password twice
+   bothy put notes n1 '{"title": "From my laptop"}'
+   bothy sync
+   ```
+
+3. On the second computer, with the same client file:
+
+   ```sh
+   bothy auth setup --client client_secret_desktop.json
+   bothy auth login
+   bothy join --remember                # the same password
+   bothy get notes n1
+   ```
+
+4. Keep both in sync in the background, with a direct channel while both are online:
+
+   ```sh
+   bothy sync --watch --p2p
+   ```
+
+</Steps>
+
+Next: [how sync works](/concepts/how-sync-works/), or a guide for
+[Flutter](/guides/flutter/), [Python](/guides/python/) or [robots](/guides/robots/).

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bothy">
+  <path d="M6 50 L32 14 L58 50 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+  <rect x="26" y="34" width="12" height="16" rx="2" fill="currentColor"/>
+  <path d="M2 54 H62" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+</svg>
