@@ -452,3 +452,38 @@ fn sync_watch_stops_on_sigint() {
     let _ = child.kill();
     panic!("sync --watch did not stop on SIGINT");
 }
+
+/// `bench propagate --reverse` times writes that `bench echo` makes on another machine.
+#[cfg(unix)]
+#[test]
+fn bench_reverse_times_writes_from_the_other_machine() {
+    let (_dir, a, b, _) = setup();
+    let mut echo = Command::new(env!("CARGO_BIN_EXE_bothy"))
+        .args(["bench", "echo", "--p2p", "--no-stun", "--host", "127.0.0.1"])
+        .env("BOTHY_HOME", &b.home)
+        .env("BOTHY_TOKEN_STORE", "file")
+        .env_remove("BOTHY_DB")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let r = a.json(&[
+        "bench",
+        "propagate",
+        "--reverse",
+        "--count",
+        "3",
+        "--interval-ms",
+        "100",
+        "--timeout",
+        "30",
+        "--p2p",
+        "--no-stun",
+        "--host",
+        "127.0.0.1",
+    ]);
+    let _ = echo.kill();
+    let _ = echo.wait();
+    assert_eq!(r["arrived"], 3, "{r}");
+    assert!(r["p50_ms"].as_u64().unwrap() < 5000, "{r}");
+}

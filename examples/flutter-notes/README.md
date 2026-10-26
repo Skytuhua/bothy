@@ -41,7 +41,8 @@ so their writes show up within about a second; the status line says `direct to 1
 
 To measure it, build with `--dart-define=BOTHY_BENCH=true`. The app then acknowledges
 the writes of `bothy bench propagate` (run on a computer attached to the same database),
-which reports how long each write took to arrive.
+which reports how long each write took to arrive. With `bench propagate --reverse`, the
+app makes the writes and the computer times them.
 
 ## Try it without Google
 

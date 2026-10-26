@@ -196,10 +196,15 @@ pub enum Bench {
         /// Measure without direct channels (polling only).
         #[arg(long)]
         no_p2p: bool,
+        /// Time writes made by the other device (`bench echo` or the demo app's bench mode)
+        /// instead of writes made here.
+        #[arg(long, conflicts_with = "peer")]
+        reverse: bool,
         #[command(flatten)]
         p2p: P2p,
     },
-    /// Answer `bench propagate` from another device: acknowledge each write when it arrives.
+    /// Answer `bench propagate` from another device: acknowledge each write when it arrives,
+    /// and make the writes `bench propagate --reverse` asks for.
     Echo {
         #[command(flatten)]
         p2p: P2p,
