@@ -15,11 +15,14 @@ use bothy::{
 };
 use serde_json::{Value as J, json};
 
-use crate::cli::{Auth, Bench, Command, Devices, Init, Inspect, Join, P2p, Setup, Snapshot};
+use crate::cli::{
+    Auth, Bench, Command, Devices, Init, Inspect, Join, P2p, Setup, SetupWhat, Snapshot,
+};
 use crate::config::{CliConfig, DbEntry, Paths, RemoteSpec, check_db_name, write_private};
 use crate::fail::{CliError, CliResult};
 use crate::oauth::{self, SCOPE_APPDATA, SCOPE_FILE};
 use crate::secrets::{self, Ask};
+use crate::setup;
 use crate::tokens;
 
 pub struct Ctx {
@@ -457,6 +460,192 @@ async fn bench_reverse(a: &Database, p2p: bool, o: &BenchOpts) -> CliResult<J> {
     Ok(summary(got.into_values().collect(), o.count, connect_ms))
 }
 
+struct GoogleSetup {
+    project: Option<String>,
+    client: Option<String>,
+    device_client: Option<String>,
+    browser: bool,
+    login: bool,
+}
+
+/// One line from stdin, trimmed; `default` if empty.
+fn ask(question: &str, default: Option<&str>) -> CliResult<String> {
+    use std::io::Write;
+    match default {
+        Some(d) => eprint!("{question} [{d}]: "),
+        None => eprint!("{question}: "),
+    }
+    let _ = std::io::stderr().flush();
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| CliError::io("cannot read stdin", e))?;
+    let line = line.trim();
+    match (line.is_empty(), default) {
+        (true, Some(d)) => Ok(d.to_owned()),
+        (true, None) => Err(CliError::usage("no answer given")),
+        _ => Ok(line.to_owned()),
+    }
+}
+
+/// Prints a step with its console page and waits for Enter.
+fn step(n: u32, title: &str, url: &str, todo: &[&str], browser: bool) -> CliResult<()> {
+    eprintln!("\nStep {n}/6: {title}\n  {url}");
+    for t in todo {
+        eprintln!("  - {t}");
+    }
+    if browser {
+        let _ = open::that_detached(url);
+    }
+    ask("Press Enter when done", Some(""))?;
+    Ok(())
+}
+
+/// Reads, checks and stores a client file of the expected kind.
+fn take_client(
+    ctx: &Ctx,
+    path: Option<String>,
+    want: setup::ClientKind,
+    project: &str,
+) -> CliResult<String> {
+    let guess = std::env::var_os("HOME")
+        .map(|h| std::path::PathBuf::from(h).join("Downloads"))
+        .and_then(|d| setup::newest_client_file(&d))
+        .map(|p| p.display().to_string());
+    let explicit = path.is_some();
+    loop {
+        let path = match &path {
+            Some(p) => p.clone(),
+            None => ask("Path of the downloaded JSON file", guess.as_deref())?,
+        };
+        let bytes =
+            std::fs::read(&path).map_err(|e| CliError::io(&format!("cannot read {path}"), e))?;
+        let checked =
+            setup::inspect(&bytes).and_then(|f| setup::expect(&f, want, project).map(|()| f));
+        match checked {
+            Ok(f) => {
+                let kind = if want == setup::ClientKind::Device {
+                    "device"
+                } else {
+                    "desktop"
+                };
+                write_private(&ctx.paths.client_file(kind), &bytes)?;
+                eprintln!("  stored the {} client {}", want.label(), f.id);
+                return Ok(f.id);
+            }
+            // A file named on the command line is not asked for again.
+            Err(e) if explicit => return Err(CliError::usage(format!("{path}: {e}"))),
+            Err(e) => eprintln!("  {path}: {e}"),
+        }
+    }
+}
+
+/// `bothy setup google`.
+async fn setup_google(ctx: &Ctx, o: GoogleSetup) -> CliResult<()> {
+    use setup::{ClientKind, Page, console_url};
+    eprintln!(
+        "This sets up a Google Cloud project for Bothy (about ten minutes, free). Every device of a\n\
+         database must use clients of the same project, so use this project for all of them."
+    );
+    let project = match o.project {
+        Some(p) => p,
+        None => {
+            step(
+                1,
+                "Create a project",
+                &console_url(Page::CreateProject, ""),
+                &[
+                    "name it, for example my-notes-sync, and create it",
+                    "copy its project id (shown under the name)",
+                ],
+                o.browser,
+            )?;
+            ask("Project id", None)?
+        }
+    };
+    setup::check_project_id(&project).map_err(CliError::usage)?;
+    let given_client = o.client.is_some();
+    if !given_client {
+        step(
+            2,
+            "Enable the Google Drive API",
+            &console_url(Page::DriveApi, &project),
+            &["click Enable"],
+            o.browser,
+        )?;
+        step(
+            3,
+            "Consent screen",
+            &console_url(Page::Branding, &project),
+            &[
+                "Get started: an app name and your email; audience External",
+                &format!(
+                    "then add your Google account as a test user: {}",
+                    console_url(Page::Audience, &project)
+                ),
+            ],
+            o.browser,
+        )?;
+        step(
+            4,
+            "Scopes",
+            &console_url(Page::DataAccess, &project),
+            &["Add or remove scopes: .../auth/drive.appdata and .../auth/drive.file, then Save"],
+            o.browser,
+        )?;
+        step(
+            5,
+            "Desktop client",
+            &console_url(Page::CreateClient, &project),
+            &["Application type: Desktop app; Create", "Download JSON"],
+            o.browser,
+        )?;
+    }
+    let id = take_client(ctx, o.client, ClientKind::Desktop, &project)?;
+    if let Some(dc) = o.device_client {
+        take_client(ctx, Some(dc), ClientKind::Device, &project)?;
+    } else if !given_client
+        && ask("Will a headless board (no browser) join? y/N", Some("n"))?.eq_ignore_ascii_case("y")
+    {
+        eprintln!(
+            "  Create one more client of type \"TVs and Limited Input devices\" at {} and download it.",
+            console_url(Page::CreateClient, &project)
+        );
+        take_client(ctx, None, ClientKind::Device, &project)?;
+    }
+    if !o.login {
+        ctx.out(
+            json!({"project": project, "client_id": id, "signed_in": false}),
+            || "clients stored; sign in with `bothy auth login`".to_owned(),
+        );
+        return Ok(());
+    }
+    eprintln!("\nStep 6/6: sign in and check Drive");
+    let client = tokens::client(&ctx.paths, "desktop")?;
+    let grant = oauth::loopback_login(&client, &[SCOPE_APPDATA, SCOPE_FILE]).await?;
+    tokens::save(&ctx.paths, &grant)?;
+    let remote = remote_for(ctx, &RemoteSpec::AppData)?;
+    match remote.list("").await {
+        Ok(files) => {
+            ctx.out(
+                json!({"project": project, "client_id": id, "signed_in": true, "drive": "ok", "files": files.len()}),
+                || {
+                    "Google Drive answers. Next: `bothy init --encrypt --remember` here, and\n\
+                     `bothy setup google --project <id> --client <same file>` then `bothy join` on other machines.\n\
+                     While the consent screen is in Testing, Google ends sign-ins after 7 days; publish it\n\
+                     (Audience → Publish app) to avoid that."
+                        .to_owned()
+                },
+            );
+            Ok(())
+        }
+        Err(e) => match setup::explain_drive_error(e.message(), &project) {
+            Some(why) => Err(CliError::usage(why)),
+            None => Err(e.into()),
+        },
+    }
+}
+
 async fn open(ctx: &Ctx) -> CliResult<Database> {
     let config = CliConfig::load(&ctx.paths)?;
     let entry = entry(ctx, &config)?;
@@ -613,6 +802,25 @@ fn setup_entry(ctx: &mut Ctx, setup: &Setup) -> CliResult<(CliConfig, DbEntry)> 
 pub async fn run(mut ctx: Ctx, command: Command) -> CliResult<()> {
     match command {
         Command::Auth(a) => auth(&ctx, a).await,
+        Command::Setup(SetupWhat::Google {
+            project,
+            client,
+            device_client,
+            no_browser,
+            no_login,
+        }) => {
+            setup_google(
+                &ctx,
+                GoogleSetup {
+                    project,
+                    client,
+                    device_client,
+                    browser: !no_browser,
+                    login: !no_login,
+                },
+            )
+            .await
+        }
 
         Command::Init(Init {
             setup,

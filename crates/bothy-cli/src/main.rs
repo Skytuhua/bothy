@@ -6,6 +6,7 @@ mod config;
 mod fail;
 mod oauth;
 mod secrets;
+mod setup;
 mod tokens;
 
 use std::process::ExitCode;

@@ -32,6 +32,9 @@ pub enum Command {
     /// Google sign-in.
     #[command(subcommand)]
     Auth(Auth),
+    /// Guided setup of what Bothy needs, with checks at each step.
+    #[command(subcommand)]
+    Setup(SetupWhat),
     /// Create a new synced database.
     Init(Init),
     /// Join an existing synced database.
@@ -124,6 +127,29 @@ pub enum Command {
         /// Export every collection.
         #[arg(long, conflicts_with = "collection")]
         all: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum SetupWhat {
+    /// Create a Google Cloud project and OAuth clients for Bothy, step by step, then sign in
+    /// and check that Drive answers.
+    Google {
+        /// The project id, if the project exists already.
+        #[arg(long)]
+        project: Option<String>,
+        /// The Desktop app client JSON, if it is downloaded already.
+        #[arg(long)]
+        client: Option<String>,
+        /// Also a "TVs and Limited Input devices" client JSON, for headless boards.
+        #[arg(long)]
+        device_client: Option<String>,
+        /// Print the console links instead of opening them.
+        #[arg(long)]
+        no_browser: bool,
+        /// Stop after storing the clients; do not sign in.
+        #[arg(long)]
+        no_login: bool,
     },
 }
 

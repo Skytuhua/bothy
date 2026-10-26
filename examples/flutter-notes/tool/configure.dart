@@ -16,16 +16,14 @@ void main(List<String> args) {
   final defines = <String, String>{};
   final desktop = arg('desktop');
   if (desktop != null) {
-    final json = jsonDecode(File(desktop).readAsStringSync()) as Map;
-    final installed = (json['installed'] ?? json['web']) as Map;
-    defines['GOOGLE_DESKTOP_CLIENT_ID'] = installed['client_id'] as String;
-    defines['GOOGLE_DESKTOP_CLIENT_SECRET'] =
-        installed['client_secret'] as String;
+    final client = desktopClient(desktop);
+    defines['GOOGLE_DESKTOP_CLIENT_ID'] = client.$1;
+    defines['GOOGLE_DESKTOP_CLIENT_SECRET'] = client.$2;
   }
   final ios = arg('ios-client-id');
-  if (ios != null) defines['GOOGLE_IOS_CLIENT_ID'] = ios;
+  if (ios != null) defines['GOOGLE_IOS_CLIENT_ID'] = clientId(ios, 'ios');
   final web = arg('web-client-id');
-  if (web != null) defines['GOOGLE_WEB_CLIENT_ID'] = web;
+  if (web != null) defines['GOOGLE_WEB_CLIENT_ID'] = clientId(web, 'web');
   final local = arg('local-remote');
   if (local != null) defines['BOTHY_LOCAL_REMOTE'] = local;
   if (defines.isEmpty) {
@@ -48,4 +46,48 @@ void main(List<String> args) {
         .writeAsStringSync('GOOGLE_REVERSED_CLIENT_ID=$reversed\n');
     stdout.writeln('wrote ios/Flutter/OAuth.xcconfig');
   }
+}
+
+Never fail(String message) {
+  stderr.writeln('error: $message');
+  exit(2);
+}
+
+/// A client id as the console shows it.
+String clientId(String id, String what) {
+  if (!id.endsWith('.apps.googleusercontent.com')) {
+    fail('--$what-client-id must end in .apps.googleusercontent.com');
+  }
+  return id;
+}
+
+/// The id and secret of a "Desktop app" client file, with the same checks as
+/// `bothy setup google`: the desktop client is the `installed` one with redirect URIs.
+(String, String) desktopClient(String path) {
+  final Object? json;
+  try {
+    json = jsonDecode(File(path).readAsStringSync());
+  } on Object {
+    fail('$path is not a client JSON file from the Cloud console');
+  }
+  if (json is! Map) fail('$path is not a client JSON file');
+  if (json['web'] != null) {
+    fail(
+      '$path is a "Web application" client; --desktop needs a "Desktop app" client',
+    );
+  }
+  final c = json['installed'];
+  if (c is! Map) fail('$path is not an OAuth client file');
+  final secret = c['client_secret'];
+  if (secret is! String || secret.isEmpty) {
+    fail(
+      '$path is an Android or iOS client; --desktop needs a "Desktop app" client',
+    );
+  }
+  if (c['redirect_uris'] == null) {
+    fail(
+      '$path is a "TVs and Limited Input devices" client; --desktop needs a "Desktop app" client',
+    );
+  }
+  return (clientId(c['client_id'] as String? ?? '', 'desktop'), secret);
 }

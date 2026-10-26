@@ -8,6 +8,20 @@ import { Steps, Aside } from '@astrojs/starlight/components';
 Bothy has no server, so it signs in to Google Drive with an OAuth client of **your own Google
 Cloud project**. You do this once; it takes about ten minutes and costs nothing.
 
+The command-line tool walks you through it:
+
+```sh
+cargo install bothy-cli
+bothy setup google
+```
+
+It opens each console page below for your project and checks every downloaded client file:
+right type, right project. Then it signs in and confirms that Google Drive answers; if the
+Drive API is not enabled, it says so and links to the page. On other machines, run
+`bothy setup google --project <id> --client <the same file>`.
+
+The same steps by hand:
+
 <Aside type="caution" title="One project per database">
 Google Drive shows a project only the files that **that project's** clients created. Every
 device of one database, whether the CLI, your Flutter app or a robot, must use clients of the
