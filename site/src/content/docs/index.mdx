@@ -43,3 +43,17 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
     languages can read and write the same data.
   </Card>
 </CardGrid>
+
+## Bothy and your Google data
+
+The Bothy command-line tool and the Bothy Notes demo app sign in with Google only to keep
+**your** data in **your** Google Drive. They ask for two Drive permissions:
+
+- **`drive.appdata`:** a hidden folder that only Bothy can see, where your synced
+  databases live;
+- **`drive.file`:** only the files and folders Bothy itself creates, such as `Bothy/robot`.
+
+Bothy cannot see your other Drive files. The project runs no servers and receives none of your
+data. Read the full [privacy policy](/privacy/).
+
+[Privacy policy](/privacy/) · [Source code](https://github.com/bothy-sync/bothy) · [Documentation](/start/introduction/)
