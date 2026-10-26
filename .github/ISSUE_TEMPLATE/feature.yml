@@ -1,0 +1,21 @@
+name: Feature request
+description: Something Bothy should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: wanted
+    attributes:
+      label: What would help
+      description: What you would like to see. Rough ideas are fine.
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: Who else runs into this, and what happens without it.

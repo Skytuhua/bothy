@@ -1,0 +1,32 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you did, what you expected, and what happened instead. Paste errors as text.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The smallest steps or code that show it. Never paste tokens, passwords or client secrets.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and platform
+      placeholder: "bothy 0.4.0 (Flutter), Android 15 / macOS 26 / Ubuntu 24.04"
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Part
+      options: [Rust engine, CLI, Flutter package, Python package, C ABI, demo app, robot agent, documentation]
+    validations:
+      required: true
